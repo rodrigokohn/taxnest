@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View, type ViewStyle } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Button } from '@/components/button';
 import { IconSymbol } from '@/components/icon-symbol';
@@ -89,7 +90,7 @@ export function OnboardingWizard() {
     <Screen edges={['top', 'bottom']}>
       <ProgressDots total={TOTAL_STEPS} current={step} color={theme.primary} track={theme.border} />
 
-      <View style={styles.body}>
+      <Animated.View key={step} style={styles.body} entering={FadeIn.duration(240)}>
         {step === 0 && (
           <Centered>
             <ThemedText variant="screenTitle" style={styles.headline}>
@@ -193,7 +194,7 @@ export function OnboardingWizard() {
             </ThemedText>
           </Centered>
         )}
-      </View>
+      </Animated.View>
 
       <View style={styles.footer}>
         {step === 6 ? (

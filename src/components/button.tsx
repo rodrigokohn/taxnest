@@ -48,7 +48,8 @@ export function Button({
           borderWidth: StyleSheet.hairlineWidth,
           borderColor: theme.border,
         },
-        (pressed || isDisabled) && styles.dimmed,
+        pressed && styles.pressed,
+        isDisabled && styles.dimmed,
         style,
       ]}>
       {loading ? (
@@ -75,4 +76,5 @@ const styles = StyleSheet.create({
   },
   content: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   dimmed: { opacity: 0.6 },
+  pressed: { transform: [{ scale: 0.97 }], opacity: 0.92 },
 });

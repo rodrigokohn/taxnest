@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
@@ -135,7 +136,7 @@ function PaymentRow({
 }) {
   const theme = useTheme();
   return (
-    <View style={styles.row}>
+    <Animated.View style={styles.row} entering={FadeIn.duration(300)}>
       <View style={[styles.dot, { backgroundColor: source?.color ?? theme.primary }]} />
       <View style={styles.rowMain}>
         <ThemedText variant="body">{source?.name ?? 'Income'}</ThemedText>
@@ -152,7 +153,7 @@ function PaymentRow({
         style={styles.deleteBtn}>
         <IconSymbol name="trash" color={theme.textTertiary} size={18} />
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
 

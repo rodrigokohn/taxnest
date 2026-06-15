@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
 import { Button } from '@/components/button';
 import { IconSymbol } from '@/components/icon-symbol';
@@ -195,19 +196,23 @@ function SetAsideResult({
         <ThemedText variant="sectionHeader" color="textSecondary">
           Set aside
         </ThemedText>
-        <ThemedText style={[styles.setAsideHero, { color: theme.accent }]}>
-          {formatUSD(animated)}
-        </ThemedText>
+        <Animated.View entering={ZoomIn.springify().damping(12).mass(0.6)}>
+          <ThemedText style={[styles.setAsideHero, { color: theme.accent }]}>
+            {formatUSD(animated)}
+          </ThemedText>
+        </Animated.View>
         <ThemedText variant="body" color="textSecondary">
           from this {formatUSD(amount)} payment
         </ThemedText>
 
-        <View style={styles.coveredRow}>
+        <Animated.View
+          entering={FadeInDown.delay(300).springify().damping(18)}
+          style={styles.coveredRow}>
           <IconSymbol name="checkmark.circle.fill" color={theme.success} size={20} />
           <ThemedText variant="body" color="success">
             That keeps you covered for taxes
           </ThemedText>
-        </View>
+        </Animated.View>
 
         <Pressable
           onPress={onToggleBreakdown}

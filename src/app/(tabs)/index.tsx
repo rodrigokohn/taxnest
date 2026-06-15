@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { AnimatedEntrance } from '@/components/animated-entrance';
 import { Card } from '@/components/card';
 import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
@@ -27,52 +28,55 @@ export default function HomeScreen() {
   return (
     <Screen>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.headerRow}>
-          <ThemedText variant="screenTitle">Hi 👋</ThemedText>
-          <View style={[styles.yearChip, { backgroundColor: theme.surface }]}>
-            <ThemedText variant="secondary" color="textSecondary">
-              {DEFAULT_TAX_YEAR}
-            </ThemedText>
-          </View>
-        </View>
-
-        {/* Hero */}
-        <View style={styles.hero}>
-          <ThemedText variant="secondary" color="textSecondary">
-            Set aside this year
-          </ThemedText>
-          <ThemedText variant="heroNumber" style={styles.heroNumber}>
-            {formatUSD(heroValue)}
-          </ThemedText>
-          {data?.hasPayments ? (
-            <View style={styles.statusRow}>
-              <IconSymbol name="checkmark.circle.fill" color={theme.success} size={18} />
-              <ThemedText variant="body" color="success">
-                You&apos;re covered so far
+        <AnimatedEntrance index={0}>
+          <View style={styles.headerRow}>
+            <ThemedText variant="screenTitle">Hi 👋</ThemedText>
+            <View style={[styles.yearChip, { backgroundColor: theme.surface }]}>
+              <ThemedText variant="secondary" color="textSecondary">
+                {DEFAULT_TAX_YEAR}
               </ThemedText>
             </View>
-          ) : (
-            <ThemedText variant="body" color="textSecondary">
-              Add your first payment to see how much to set aside.
-            </ThemedText>
-          )}
-        </View>
+          </View>
+        </AnimatedEntrance>
 
-        {/* Next quarterly payment */}
+        <AnimatedEntrance index={1}>
+          <View style={styles.hero}>
+            <ThemedText variant="secondary" color="textSecondary">
+              Set aside this year
+            </ThemedText>
+            <ThemedText variant="heroNumber" style={styles.heroNumber}>
+              {formatUSD(heroValue)}
+            </ThemedText>
+            {data?.hasPayments ? (
+              <View style={styles.statusRow}>
+                <IconSymbol name="checkmark.circle.fill" color={theme.success} size={18} />
+                <ThemedText variant="body" color="success">
+                  You&apos;re covered so far
+                </ThemedText>
+              </View>
+            ) : (
+              <ThemedText variant="body" color="textSecondary">
+                Add your first payment to see how much to set aside.
+              </ThemedText>
+            )}
+          </View>
+        </AnimatedEntrance>
+
         {data?.nextDeadline && (
-          <Pressable onPress={() => router.navigate('/(tabs)/taxes')} accessibilityRole="button">
-            <NextDeadlineCard
-              quarter={data.nextDeadline.quarter}
-              date={data.nextDeadline.date}
-              daysRemaining={data.nextDeadline.daysRemaining}
-              isOverdue={data.nextDeadline.isOverdue}
-              suggested={data.suggestedQuarterly}
-            />
-          </Pressable>
+          <AnimatedEntrance index={2}>
+            <Pressable onPress={() => router.navigate('/(tabs)/taxes')} accessibilityRole="button">
+              <NextDeadlineCard
+                quarter={data.nextDeadline.quarter}
+                date={data.nextDeadline.date}
+                daysRemaining={data.nextDeadline.daysRemaining}
+                isOverdue={data.nextDeadline.isOverdue}
+                suggested={data.suggestedQuarterly}
+              />
+            </Pressable>
+          </AnimatedEntrance>
         )}
 
-        {/* Projection + effective rate */}
-        <View style={styles.cardRow}>
+        <AnimatedEntrance index={3} style={styles.cardRow}>
           <Pressable
             style={styles.halfCard}
             onPress={() => setShowBreakdown((v) => !v)}
@@ -102,7 +106,7 @@ export default function HomeScreen() {
               </ThemedText>
             </Card>
           </View>
-        </View>
+        </AnimatedEntrance>
 
         {showBreakdown && data && (
           <Card>
@@ -123,8 +127,7 @@ export default function HomeScreen() {
           </Card>
         )}
 
-        {/* Pro entry cards */}
-        <View style={styles.cardRow}>
+        <AnimatedEntrance index={4} style={styles.cardRow}>
           <ProEntryCard
             title="Deductions"
             icon="tag.fill"
@@ -137,7 +140,7 @@ export default function HomeScreen() {
             locked={!isPro}
             onPress={() => router.navigate('/(tabs)/more')}
           />
-        </View>
+        </AnimatedEntrance>
       </ScrollView>
     </Screen>
   );
