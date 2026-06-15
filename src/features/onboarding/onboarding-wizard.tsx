@@ -1,11 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Button } from '@/components/button';
 import { IconSymbol } from '@/components/icon-symbol';
+import { OptionRow } from '@/components/option-row';
 import { Screen } from '@/components/screen';
+import { StatePicker } from '@/components/state-picker';
 import { ThemedText } from '@/components/themed-text';
 import { incomeSourceRepo } from '@/data';
 import {
@@ -16,7 +18,6 @@ import {
 } from '@/domain';
 import { Radius, Spacing, useTheme } from '@/design';
 import { newId } from '@/lib/id';
-import { US_STATES, type USState } from '@/lib/us-states';
 import {
   requestNotificationPermission,
   scheduleQuarterlyReminders,
@@ -266,37 +267,6 @@ function Question({ title, children }: { title: string; children: React.ReactNod
   );
 }
 
-function OptionRow({
-  label,
-  selected,
-  onPress,
-  style,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-  style?: ViewStyle;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={[
-        styles.optionRow,
-        { borderColor: selected ? theme.primary : theme.border, backgroundColor: theme.surface },
-        selected && { backgroundColor: theme.primaryTint },
-        style,
-      ]}>
-      <ThemedText variant="body" color={selected ? 'primary' : 'textPrimary'}>
-        {label}
-      </ThemedText>
-      {selected && <IconSymbol name="checkmark.circle.fill" color={theme.primary} size={22} />}
-    </Pressable>
-  );
-}
-
 function CurrencyInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const theme = useTheme();
   return (
@@ -358,49 +328,17 @@ function StateStep({
   onSelect: (code: string) => void;
   noStateTax: boolean;
 }) {
-  const theme = useTheme();
-  const [query, setQuery] = useState('');
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return US_STATES;
-    return US_STATES.filter((s) => s.name.toLowerCase().includes(q) || s.code.toLowerCase() === q);
-  }, [query]);
-
   return (
     <View style={styles.stepContent}>
       <ThemedText variant="screenTitle" style={styles.questionTitle}>
         Which state do you live in?
       </ThemedText>
-      <View style={[styles.fieldBox, { borderColor: theme.border }]}>
-        <IconSymbol name="magnifyingglass" color={theme.textTertiary} size={18} />
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search states"
-          placeholderTextColor={theme.textTertiary}
-          style={[styles.fieldInput, { color: theme.textPrimary }]}
-          autoCorrect={false}
-        />
-      </View>
       {noStateTax && (
         <ThemedText variant="secondary" color="success">
           Good news — this state has no state income tax.
         </ThemedText>
       )}
-      <FlatList
-        data={results}
-        keyExtractor={(item) => item.code}
-        keyboardShouldPersistTaps="handled"
-        style={styles.stateList}
-        renderItem={({ item }: { item: USState }) => (
-          <OptionRow
-            label={item.name}
-            selected={selected === item.code}
-            onPress={() => onSelect(item.code)}
-            style={styles.stateRow}
-          />
-        )}
-      />
+      <StatePicker selected={selected} onSelect={onSelect} />
     </View>
   );
 }
@@ -418,15 +356,6 @@ const styles = StyleSheet.create({
   questionTitle: { marginBottom: Spacing.sm },
   segment: { gap: Spacing.sm },
   priorYearFields: { gap: Spacing.lg, marginTop: Spacing.sm },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
-  },
   currencyRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -445,6 +374,4 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   fieldInput: { flex: 1, fontSize: 16 },
-  stateList: { flex: 1 },
-  stateRow: { marginBottom: Spacing.sm },
 });

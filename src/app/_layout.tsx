@@ -49,6 +49,10 @@ export default function RootLayout() {
           <Stack.Screen name="deductions" options={{ headerShown: true, title: 'Deductions' }} />
           <Stack.Screen name="reports" options={{ headerShown: true, title: 'Reports' }} />
           <Stack.Screen name="ask" options={{ headerShown: true, title: 'Ask' }} />
+          <Stack.Screen
+            name="edit-profile"
+            options={{ headerShown: true, title: 'Edit profile' }}
+          />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

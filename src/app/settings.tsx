@@ -1,7 +1,9 @@
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
+import { IconSymbol } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { useEntitlementStore, useIsPro } from '@/config/gating';
 import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
@@ -28,6 +30,7 @@ export default function SettingsScreen() {
   const isPro = useIsPro();
   const setEntitlement = useEntitlementStore((s) => s.setEntitlement);
   const config = useTaxConfigStore((s) => s.config);
+  const router = useRouter();
 
   const [remindersOn, setRemindersOn] = useState(false);
   useEffect(() => {
@@ -61,6 +64,15 @@ export default function SettingsScreen() {
           value={profile ? formatUSD(profile.estimated_annual_income) : '—'}
         />
         <Row label="Tax year" value={String(DEFAULT_TAX_YEAR)} />
+        <Pressable
+          onPress={() => router.navigate('/edit-profile')}
+          style={styles.row}
+          accessibilityRole="button">
+          <ThemedText variant="body" color="primary">
+            Edit tax profile
+          </ThemedText>
+          <IconSymbol name="chevron.right" color={theme.textTertiary} size={14} />
+        </Pressable>
       </Section>
 
       <Section title="Notifications">
