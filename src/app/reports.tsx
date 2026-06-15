@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -5,11 +6,26 @@ import { IconSymbol } from '@/components/icon-symbol';
 import { ProGate } from '@/components/pro-gate';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
+import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { Spacing, useTheme } from '@/design';
+import { generateAndShareReport } from '@/features/reports/generate-report';
 
-/** Reports (PRD §8.7). Pro-gated. PDF generation is wired up in a later step. */
+/** Reports (PRD §8.7). Pro-gated. */
 export default function ReportsRoute() {
   const theme = useTheme();
+  const [busy, setBusy] = useState(false);
+
+  async function generate() {
+    setBusy(true);
+    try {
+      await generateAndShareReport(DEFAULT_TAX_YEAR);
+    } catch {
+      Alert.alert('Reports', 'Could not generate the report. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <Screen edges={[]}>
       <ProGate
@@ -25,8 +41,9 @@ export default function ReportsRoute() {
           </ThemedText>
           <Button
             title="Generate tax report (PDF)"
+            loading={busy}
             style={styles.cta}
-            onPress={() => Alert.alert('Reports', 'PDF export arrives in a later step.')}
+            onPress={generate}
           />
         </View>
       </ProGate>

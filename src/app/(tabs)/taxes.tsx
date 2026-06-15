@@ -11,6 +11,7 @@ import { type Quarter, type QuarterlyPayment } from '@/domain';
 import { Spacing, useTheme } from '@/design';
 import { shortDate } from '@/lib/deadlines';
 import { formatUSD } from '@/lib/money';
+import { haptics } from '@/services/haptics';
 import { useDashboardData } from '@/features/dashboard/use-dashboard-data';
 import { useTaxConfigStore } from '@/store';
 
@@ -58,6 +59,7 @@ export default function TaxesScreen() {
         suggested,
         new Date().toISOString().slice(0, 10),
       );
+      haptics.success();
     }
     refresh();
   }

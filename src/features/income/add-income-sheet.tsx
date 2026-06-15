@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { Button } from '@/components/button';
 import { IconSymbol } from '@/components/icon-symbol';
@@ -12,6 +13,7 @@ import { deductionRepo, incomeSourceRepo } from '@/data';
 import { Radius, Spacing, useTheme } from '@/design';
 import { formatUSD } from '@/lib/money';
 import { useCountUp } from '@/lib/use-count-up';
+import { haptics } from '@/services/haptics';
 import { computeAnnualTax } from '@/tax-engine';
 import { usePaymentsStore, useProfileStore, useTaxConfigStore } from '@/store';
 
@@ -31,7 +33,7 @@ export function AddIncomeSheet() {
   const [delta, setDelta] = useState<Delta>({ se: 0, federal: 0, state: 0 });
   const [showBreakdown, setShowBreakdown] = useState(false);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(new Date());
 
   async function calculate() {
     const profile = useProfileStore.getState().profile;
@@ -58,6 +60,7 @@ export function AddIncomeSheet() {
     setSetAside(Math.max(0, d.se + d.federal + d.state));
     setStage('result');
     setCalculating(false);
+    haptics.success(); // the "set aside" moment (PRD §8.3)
   }
 
   async function done() {
@@ -65,7 +68,7 @@ export function AddIncomeSheet() {
     await usePaymentsStore.getState().add({
       income_source_id: source.id,
       amount,
-      date: today,
+      date: date.toISOString().slice(0, 10),
       set_aside_amount: setAside,
       note: note.trim() || undefined,
       tax_year: DEFAULT_TAX_YEAR,
@@ -125,9 +128,18 @@ export function AddIncomeSheet() {
       </View>
 
       <View style={styles.meta}>
-        <ThemedText variant="secondary" color="textSecondary">
-          Date: Today
-        </ThemedText>
+        <View style={styles.dateRow}>
+          <ThemedText variant="secondary" color="textSecondary">
+            Date
+          </ThemedText>
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display="compact"
+            maximumDate={new Date()}
+            onChange={(_event, picked) => picked && setDate(picked)}
+          />
+        </View>
         {showNote ? (
           <TextInput
             value={note}
@@ -255,6 +267,7 @@ const styles = StyleSheet.create({
   },
   amountInput: { fontSize: 56, fontWeight: '700', minWidth: 120, textAlign: 'left' },
   meta: { gap: Spacing.sm, paddingBottom: Spacing.lg },
+  dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   noteInput: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.md,
