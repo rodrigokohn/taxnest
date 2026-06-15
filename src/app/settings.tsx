@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -8,7 +9,13 @@ import { FILING_STATUS_LABELS } from '@/domain';
 import { Radius, Spacing, useTheme } from '@/design';
 import { formatUSD } from '@/lib/money';
 import { stateName } from '@/lib/us-states';
-import { useProfileStore } from '@/store';
+import {
+  cancelQuarterlyReminders,
+  getNotificationsGranted,
+  requestNotificationPermission,
+  scheduleQuarterlyReminders,
+} from '@/services/notifications';
+import { useProfileStore, useTaxConfigStore } from '@/store';
 
 const DISCLAIMER =
   'FreelanceTax provides estimates for planning purposes only. It is not tax, legal, or ' +
@@ -20,6 +27,23 @@ export default function SettingsScreen() {
   const profile = useProfileStore((s) => s.profile);
   const isPro = useIsPro();
   const setEntitlement = useEntitlementStore((s) => s.setEntitlement);
+  const config = useTaxConfigStore((s) => s.config);
+
+  const [remindersOn, setRemindersOn] = useState(false);
+  useEffect(() => {
+    getNotificationsGranted().then(setRemindersOn);
+  }, []);
+
+  async function toggleReminders(value: boolean) {
+    if (value) {
+      const granted = await requestNotificationPermission();
+      if (granted) await scheduleQuarterlyReminders(config?.quarterly_deadlines ?? []);
+      setRemindersOn(granted);
+    } else {
+      await cancelQuarterlyReminders();
+      setRemindersOn(false);
+    }
+  }
 
   return (
     <ScrollView
@@ -37,6 +61,17 @@ export default function SettingsScreen() {
           value={profile ? formatUSD(profile.estimated_annual_income) : '—'}
         />
         <Row label="Tax year" value={String(DEFAULT_TAX_YEAR)} />
+      </Section>
+
+      <Section title="Notifications">
+        <View style={styles.row}>
+          <ThemedText variant="body">Quarterly reminders</ThemedText>
+          <Switch
+            value={remindersOn}
+            onValueChange={toggleReminders}
+            trackColor={{ true: theme.primary }}
+          />
+        </View>
       </Section>
 
       <Section title="Subscription">

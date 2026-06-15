@@ -16,7 +16,10 @@ import {
 import { Radius, Spacing, useTheme } from '@/design';
 import { newId } from '@/lib/id';
 import { US_STATES, type USState } from '@/lib/us-states';
-import { requestNotificationPermission } from '@/services/notifications';
+import {
+  requestNotificationPermission,
+  scheduleQuarterlyReminders,
+} from '@/services/notifications';
 import { useProfileStore, useTaxConfigStore } from '@/store';
 
 type Draft = {
@@ -199,7 +202,8 @@ export function OnboardingWizard() {
               title="Enable reminders"
               loading={saving}
               onPress={async () => {
-                await requestNotificationPermission();
+                const granted = await requestNotificationPermission();
+                if (granted) await scheduleQuarterlyReminders(config?.quarterly_deadlines ?? []);
                 await finish();
               }}
             />
