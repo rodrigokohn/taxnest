@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -6,18 +6,23 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useProfileStore, useTaxConfigStore } from '@/store';
+import { useAuthStore, useProfileStore, useTaxConfigStore } from '@/store';
 
 SplashScreen.preventAutoHideAsync();
 
 /**
- * Root navigation + app bootstrap. Loads the profile and TaxConfig, keeps the
- * splash screen up until ready, then routes to onboarding (no profile) or the
- * tabs (returning user).
+ * Root navigation + app bootstrap. Resolves auth, profile, and TaxConfig, keeps
+ * the splash up until ready, then gates: signed out → sign-in; signed in but no
+ * profile → onboarding; otherwise the tabs (PRD §8, plus Google/Apple auth).
  */
 export default function RootLayout() {
   const scheme = useColorScheme();
   const router = useRouter();
+  const segments = useSegments();
+
+  const initAuth = useAuthStore((s) => s.init);
+  const authReady = useAuthStore((s) => s.initialized);
+  const signedIn = useAuthStore((s) => s.session !== null);
 
   const loadProfile = useProfileStore((s) => s.load);
   const loadConfig = useTaxConfigStore((s) => s.load);
@@ -25,21 +30,34 @@ export default function RootLayout() {
   const hasProfile = useProfileStore((s) => s.profile !== null);
 
   useEffect(() => {
+    initAuth();
     loadProfile();
     loadConfig(DEFAULT_TAX_YEAR);
-  }, [loadProfile, loadConfig]);
+  }, [initAuth, loadProfile, loadConfig]);
 
   useEffect(() => {
-    if (!profileLoaded) return;
+    if (!authReady || !profileLoaded) return;
     SplashScreen.hideAsync();
-    if (!hasProfile) router.replace('/onboarding');
-  }, [profileLoaded, hasProfile, router]);
+
+    const top = segments[0];
+    const inSignIn = top === 'sign-in';
+    const inOnboarding = top === 'onboarding';
+
+    if (!signedIn) {
+      if (!inSignIn) router.replace('/sign-in');
+    } else if (!hasProfile) {
+      if (!inOnboarding) router.replace('/onboarding');
+    } else if (inSignIn || inOnboarding) {
+      router.replace('/');
+    }
+  }, [authReady, profileLoaded, signedIn, hasProfile, segments, router]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="sign-in" options={{ gestureEnabled: false }} />
           <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
           <Stack.Screen
             name="add-income"

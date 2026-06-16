@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { IconSymbol } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
@@ -17,7 +17,7 @@ import {
   requestNotificationPermission,
   scheduleQuarterlyReminders,
 } from '@/services/notifications';
-import { useProfileStore, useTaxConfigStore } from '@/store';
+import { useAuthStore, useProfileStore, useTaxConfigStore } from '@/store';
 
 const DISCLAIMER =
   'FreelanceTax provides estimates for planning purposes only. It is not tax, legal, or ' +
@@ -31,6 +31,14 @@ export default function SettingsScreen() {
   const setEntitlement = useEntitlementStore((s) => s.setEntitlement);
   const config = useTaxConfigStore((s) => s.config);
   const router = useRouter();
+  const signOut = useAuthStore((s) => s.signOut);
+
+  function confirmSignOut() {
+    Alert.alert('Sign out', 'Sign out of FreelanceTax?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: () => signOut() },
+    ]);
+  }
 
   const [remindersOn, setRemindersOn] = useState(false);
   useEffect(() => {
@@ -103,6 +111,14 @@ export default function SettingsScreen() {
           {DISCLAIMER}
         </ThemedText>
         <Row label="Version" value={Constants.expoConfig?.version ?? '—'} />
+      </Section>
+
+      <Section title="Account">
+        <Pressable onPress={confirmSignOut} style={styles.row} accessibilityRole="button">
+          <ThemedText variant="body" color="danger">
+            Sign out
+          </ThemedText>
+        </Pressable>
       </Section>
     </ScrollView>
   );
