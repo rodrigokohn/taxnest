@@ -1,13 +1,13 @@
 // POST /ai/ask — freelance tax Q&A (Pro, PRD §9.2).
 // The app computes its numbers locally and sends an ANONYMIZED snapshot as
 // context; this function only explains in natural language. It never produces
-// the numbers it talks about.
-import Anthropic from 'npm:@anthropic-ai/sdk@^0.70';
+// the numbers it talks about. Provider: OpenAI.
+import OpenAI from 'npm:openai@^4';
 import { createClient } from 'npm:@supabase/supabase-js@^2';
 
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 
-const MODEL = 'claude-sonnet-4-6'; // PRD §9; bump to claude-opus-4-8 for more depth
+const MODEL = 'gpt-5.4-mini'; // per-user Q&A; bump to gpt-5.5 for more depth
 const DAILY_LIMIT = 40;
 
 const SYSTEM_PROMPT = `You are a helpful assistant inside FreelanceTax, an app for US freelancers.
@@ -69,29 +69,19 @@ Deno.serve(async (req) => {
     context.total_set_aside != null && `Set aside so far this year: $${context.total_set_aside}`,
   ].filter(Boolean);
 
-  const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
+  const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY') ?? '' });
 
   try {
-    const message = await anthropic.messages.create({
+    const response = await openai.responses.create({
       model: MODEL,
-      max_tokens: 1024,
-      thinking: { type: 'adaptive' },
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content:
-            (contextLines.length ? `My situation (anonymized):\n${contextLines.join('\n')}\n\n` : '') +
-            `Question: ${question}`,
-        },
-      ],
+      instructions: SYSTEM_PROMPT,
+      input:
+        (contextLines.length ? `My situation (anonymized):\n${contextLines.join('\n')}\n\n` : '') +
+        `Question: ${question}`,
+      max_output_tokens: 800,
     });
 
-    const answer = message.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('\n')
-      .trim();
+    const answer = (response.output_text ?? '').trim();
 
     await admin.from('ai_ask_usage').upsert(
       { user_key: userKey, day: today, count: (usage?.count ?? 0) + 1 },

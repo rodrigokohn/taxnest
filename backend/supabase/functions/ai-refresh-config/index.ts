@@ -1,15 +1,15 @@
 // POST /ai/refresh-config — annual TaxConfig refresh job (PRD §9.1).
-// Uses Claude + the web search tool (restricted to irs.gov) to EXTRACT the
+// Uses OpenAI + the web search tool (restricted to irs.gov) to EXTRACT the
 // year's federal/SE parameters as strict JSON, then runs the result through the
 // deterministic validation gate before writing. The AI proposes; code disposes.
 // State rules are curated separately, so we preserve the existing `states` block.
-import Anthropic from 'npm:@anthropic-ai/sdk@^0.70';
+import OpenAI from 'npm:openai@^4';
 import { createClient } from 'npm:@supabase/supabase-js@^2';
 
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 import { validateTaxConfig } from '../_shared/tax-config-schema.ts';
 
-const MODEL = 'claude-sonnet-4-6';
+const MODEL = 'gpt-5.5';
 
 const SYSTEM_PROMPT = `You are a tax data extraction tool. Search ONLY official IRS sources
 (domain irs.gov) for United States federal tax parameters. Return ONLY a single valid JSON
@@ -43,7 +43,7 @@ function userPrompt(year: number): string {
 }`;
 }
 
-function extractJson(text: string): unknown {
+function extractJson(text: string): Record<string, unknown> {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const raw = fenced ? fenced[1] : text;
   const start = raw.indexOf('{');
@@ -71,49 +71,21 @@ Deno.serve(async (req) => {
     .select('config')
     .eq('tax_year', year)
     .maybeSingle();
-  const existingStates = (existing?.config as { states?: Record<string, unknown> } | null)?.states ?? {};
+  const existingStates =
+    (existing?.config as { states?: Record<string, unknown> } | null)?.states ?? {};
 
-  const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
+  const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY') ?? '' });
 
   try {
-    // Run the model with the web search tool; continue across pause_turn.
-    const messages: Anthropic.MessageParam[] = [
-      { role: 'user', content: userPrompt(year) },
-    ];
-    let response = await anthropic.messages.create({
+    const response = await openai.responses.create({
       model: MODEL,
-      max_tokens: 8000,
-      thinking: { type: 'adaptive' },
-      system: SYSTEM_PROMPT,
-      tools: [
-        {
-          type: 'web_search_20260209',
-          name: 'web_search',
-          allowed_domains: ['irs.gov', 'www.irs.gov'],
-          max_uses: 8,
-        },
-      ],
-      messages,
+      instructions: SYSTEM_PROMPT,
+      input: userPrompt(year),
+      tools: [{ type: 'web_search', filters: { allowed_domains: ['irs.gov', 'www.irs.gov'] } }],
+      max_output_tokens: 4000,
     });
-    for (let i = 0; i < 5 && response.stop_reason === 'pause_turn'; i++) {
-      messages.push({ role: 'assistant', content: response.content });
-      response = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: 8000,
-        thinking: { type: 'adaptive' },
-        system: SYSTEM_PROMPT,
-        tools: [
-          { type: 'web_search_20260209', name: 'web_search', allowed_domains: ['irs.gov', 'www.irs.gov'], max_uses: 8 },
-        ],
-        messages,
-      });
-    }
 
-    const text = response.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('\n');
-    const extracted = extractJson(text) as Record<string, unknown>;
+    const extracted = extractJson(response.output_text ?? '');
 
     const candidate = {
       tax_year: year,

@@ -4,7 +4,7 @@ The backend does two things (PRD §5, §9):
 
 1. **Delivers the `TaxConfig`** — the app reads the `tax_configs` table with the
    public anon key and validates every row through the deterministic zod gate.
-2. **Proxies the AI** — Edge Functions hold the `ANTHROPIC_API_KEY` and run the
+2. **Proxies the AI** — Edge Functions hold the `OPENAI_API_KEY` and run the
    annual config refresh + the Q&A. The app never holds the key.
 
 ## 1. Database (SQL Editor)
@@ -21,10 +21,10 @@ The app reads `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` from
 ## 2. Edge Functions (AI)
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically. You set
-the Anthropic key once:
+the OpenAI key once:
 
 ```bash
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+supabase secrets set OPENAI_API_KEY=sk-...
 
 supabase functions deploy ai-ask
 supabase functions deploy ai-refresh-config --no-verify-jwt
@@ -34,7 +34,7 @@ supabase functions deploy ai-refresh-config --no-verify-jwt
   becomes the auth user once login lands). Reads anonymized context, returns prose
   with a fixed disclaimer, and enforces a daily per-user cap.
 - **`ai-refresh-config`** — admin job. Guarded by an `Authorization: Bearer <service_role>`
-  check; uses Claude + web search (irs.gov only) to extract the year's federal/SE
+  check; uses OpenAI + web search (irs.gov only) to extract the year's federal/SE
   params, merges the curated `states` block, runs the **deterministic validation
   gate**, and upserts only if it passes. Run it ~once a year:
 
@@ -46,7 +46,8 @@ curl -X POST "$SUPABASE_URL/functions/v1/ai-refresh-config" \
 ```
 
 To automate, schedule that call yearly with `pg_cron` + `pg_net`, or a Supabase
-scheduled function. Model is `claude-sonnet-4-6` (one constant in each function).
+scheduled function. Models: Q&A `gpt-5.4-mini`, refresh `gpt-5.5` (one constant
+in each function).
 
 ## 3. Auth (next — Google + Apple)
 
