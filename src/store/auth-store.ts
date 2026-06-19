@@ -1,6 +1,8 @@
 import { type Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
+import { useEntitlementStore } from '@/config/gating';
+import { resetPurchaser } from '@/services/purchases';
 import { supabase } from '@/services/supabase';
 
 type AuthState = {
@@ -24,6 +26,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
   async signOut() {
     await supabase.auth.signOut();
+    await resetPurchaser();
+    useEntitlementStore.getState().reset();
     set({ session: null });
   },
 }));

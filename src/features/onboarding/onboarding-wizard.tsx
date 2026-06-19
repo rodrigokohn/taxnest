@@ -178,7 +178,7 @@ export function OnboardingWizard() {
               A quick note
             </ThemedText>
             <ThemedText variant="body" color="textSecondary" style={styles.center}>
-              FreelanceTax provides estimates to help you plan. It is not tax advice and does not
+              Taxnest provides estimates to help you plan. It is not tax advice and does not
               replace a tax professional.
             </ThemedText>
           </Centered>

@@ -7,7 +7,6 @@ import { Card } from '@/components/card';
 import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { useIsPro } from '@/config/gating';
 import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { Radius, Spacing, useTheme } from '@/design';
 import { shortDate } from '@/lib/deadlines';
@@ -20,7 +19,6 @@ export default function HomeScreen() {
   const theme = useTheme();
   const router = useRouter();
   const data = useDashboardData();
-  const isPro = useIsPro();
   const [showBreakdown, setShowBreakdown] = useState(false);
 
   const heroValue = useCountUp(data?.totalSetAside ?? 0);
@@ -112,18 +110,7 @@ export default function HomeScreen() {
           <Card>
             <BreakdownRow label="Self-employment tax" value={data.componentBreakdown.se} />
             <BreakdownRow label="Federal income tax" value={data.componentBreakdown.federal} />
-            {data.includeState ? (
-              <BreakdownRow label="State income tax" value={data.componentBreakdown.state} />
-            ) : (
-              <View style={styles.breakdownRow}>
-                <ThemedText variant="secondary" color="textTertiary">
-                  State income tax
-                </ThemedText>
-                <ThemedText variant="secondary" color="textTertiary">
-                  Pro
-                </ThemedText>
-              </View>
-            )}
+            <BreakdownRow label="State income tax" value={data.componentBreakdown.state} />
           </Card>
         )}
 
@@ -131,13 +118,11 @@ export default function HomeScreen() {
           <ProEntryCard
             title="Deductions"
             icon="tag.fill"
-            locked={!isPro}
             onPress={() => router.navigate('/(tabs)/more')}
           />
           <ProEntryCard
             title="Reports"
             icon="doc.text.fill"
-            locked={!isPro}
             onPress={() => router.navigate('/(tabs)/more')}
           />
         </AnimatedEntrance>
@@ -179,12 +164,10 @@ function NextDeadlineCard({
 function ProEntryCard({
   title,
   icon,
-  locked,
   onPress,
 }: {
   title: string;
   icon: 'tag.fill' | 'doc.text.fill';
-  locked: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -193,7 +176,6 @@ function ProEntryCard({
       <Card style={styles.fill}>
         <View style={styles.proHeader}>
           <IconSymbol name={icon} color={theme.primary} size={22} />
-          {locked && <IconSymbol name="lock.fill" color={theme.textTertiary} size={16} />}
         </View>
         <ThemedText variant="body" style={styles.cardValue}>
           {title}

@@ -7,6 +7,7 @@ const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const revenueCatIosKey = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY;
 
 export const env = {
   supabaseUrl: url ?? '',
@@ -17,4 +18,8 @@ export const env = {
   googleWebClientId: googleWebClientId ?? '',
   /** Google OAuth iOS client ID — used by the native sign-in flow. */
   googleIosClientId: googleIosClientId ?? '',
+  /** RevenueCat iOS public SDK key — safe to embed (identifies the app, not authorizes). */
+  revenueCatIosKey: revenueCatIosKey ?? '',
+  /** True when RevenueCat is configured (in-app purchases available). */
+  hasPurchases: Boolean(revenueCatIosKey),
 };

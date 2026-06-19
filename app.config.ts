@@ -8,7 +8,7 @@ const googleIosUrlScheme = iosClientId
   : 'com.googleusercontent.apps.unset';
 
 const config: ExpoConfig = {
-  name: 'FreelanceTax',
+  name: 'Taxnest',
   slug: 'freelancetax',
   version: '0.1.0',
   orientation: 'portrait',
@@ -49,6 +49,7 @@ const config: ExpoConfig = {
     '@react-native-community/datetimepicker',
     'expo-apple-authentication',
     ['@react-native-google-signin/google-signin', { iosUrlScheme: googleIosUrlScheme }],
+    './plugins/with-modular-headers',
   ],
   experiments: {
     typedRoutes: true,

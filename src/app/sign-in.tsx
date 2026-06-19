@@ -1,7 +1,8 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Platform, StyleSheet, View } from 'react-native';
 
+import { GoogleSignInButton } from '@/components/google-signin-button';
 import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
@@ -20,7 +21,11 @@ export default function SignInScreen() {
     try {
       await fn();
     } catch (err) {
-      if (!isCancel(err)) Alert.alert('Sign in', 'Could not sign you in. Please try again.');
+      if (!isCancel(err)) {
+        const message = (err as { message?: string })?.message ?? String(err);
+        console.warn('[sign-in]', provider, message);
+        Alert.alert("Couldn't sign you in", 'Please try again.');
+      }
     } finally {
       setBusy(null);
     }
@@ -53,15 +58,10 @@ export default function SignInScreen() {
           />
         )}
 
-        <Pressable
+        <GoogleSignInButton
           onPress={() => run('google', signInWithGoogle)}
-          accessibilityRole="button"
-          style={[
-            styles.googleButton,
-            { borderColor: theme.border, backgroundColor: theme.surface },
-          ]}>
-          <ThemedText variant="sectionHeader">Continue with Google</ThemedText>
-        </Pressable>
+          disabled={busy !== null}
+        />
       </View>
 
       <ThemedText variant="caption" color="textTertiary" style={styles.disclaimer}>
@@ -75,14 +75,7 @@ const styles = StyleSheet.create({
   hero: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
   title: { textAlign: 'center', fontSize: 26, lineHeight: 32 },
   center: { textAlign: 'center', maxWidth: 300 },
-  buttons: { gap: Spacing.md },
-  appleButton: { height: 52 },
-  googleButton: {
-    height: 52,
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  buttons: { gap: Spacing.md, alignItems: 'center' },
+  appleButton: { height: 52, width: '100%' },
   disclaimer: { textAlign: 'center', paddingVertical: Spacing.lg },
 });

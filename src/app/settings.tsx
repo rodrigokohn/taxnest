@@ -1,11 +1,11 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { IconSymbol } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
-import { useEntitlementStore, useIsPro } from '@/config/gating';
+import { isProNow, useEntitlementStore, useIsPro, type SubStatus } from '@/config/gating';
 import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { FILING_STATUS_LABELS } from '@/domain';
 import { Radius, Spacing, useTheme } from '@/design';
@@ -17,10 +17,11 @@ import {
   requestNotificationPermission,
   scheduleQuarterlyReminders,
 } from '@/services/notifications';
+import { restorePurchases } from '@/services/purchases';
 import { useAuthStore, useProfileStore, useTaxConfigStore } from '@/store';
 
 const DISCLAIMER =
-  'FreelanceTax provides estimates for planning purposes only. It is not tax, legal, or ' +
+  'Taxnest provides estimates for planning purposes only. It is not tax, legal, or ' +
   'financial advice and does not replace a licensed tax professional.';
 
 /** Settings (PRD §8.9). */
@@ -28,16 +29,39 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const profile = useProfileStore((s) => s.profile);
   const isPro = useIsPro();
+  const status = useEntitlementStore((s) => s.status);
+  const expiresAt = useEntitlementStore((s) => s.expiresAt);
   const setEntitlement = useEntitlementStore((s) => s.setEntitlement);
   const config = useTaxConfigStore((s) => s.config);
   const router = useRouter();
   const signOut = useAuthStore((s) => s.signOut);
 
   function confirmSignOut() {
-    Alert.alert('Sign out', 'Sign out of FreelanceTax?', [
+    Alert.alert('Sign out', 'Sign out of Taxnest?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign out', style: 'destructive', onPress: () => signOut() },
     ]);
+  }
+
+  function manageSubscription() {
+    Linking.openURL('itms-apps://apps.apple.com/account/subscriptions').catch(() => {
+      Linking.openURL('https://apps.apple.com/account/subscriptions');
+    });
+  }
+
+  async function restore() {
+    try {
+      const info = await restorePurchases();
+      if (info) useEntitlementStore.getState().applyCustomerInfo(info);
+      Alert.alert(
+        isProNow() ? 'Restored' : 'Nothing to restore',
+        isProNow()
+          ? 'Your subscription is active.'
+          : 'No active subscription was found for this Apple ID.',
+      );
+    } catch {
+      Alert.alert('Restore failed', 'Please try again.');
+    }
   }
 
   const [remindersOn, setRemindersOn] = useState(false);
@@ -95,15 +119,28 @@ export default function SettingsScreen() {
       </Section>
 
       <Section title="Subscription">
-        <Row label="Current plan" value={isPro ? 'Pro' : 'Free'} />
-        <View style={styles.row}>
-          <ThemedText variant="body">Simulate Pro (dev)</ThemedText>
-          <Switch
-            value={isPro}
-            onValueChange={(v) => setEntitlement(v ? 'pro' : 'free')}
-            trackColor={{ true: theme.primary }}
-          />
-        </View>
+        <Row label="Current plan" value={subscriptionLabel(status, expiresAt)} />
+        <Pressable onPress={manageSubscription} style={styles.row} accessibilityRole="button">
+          <ThemedText variant="body" color="primary">
+            Manage subscription
+          </ThemedText>
+          <IconSymbol name="chevron.right" color={theme.textTertiary} size={14} />
+        </Pressable>
+        <Pressable onPress={restore} style={styles.row} accessibilityRole="button">
+          <ThemedText variant="body" color="primary">
+            Restore purchases
+          </ThemedText>
+        </Pressable>
+        {__DEV__ && (
+          <View style={styles.row}>
+            <ThemedText variant="body">Simulate Pro (dev)</ThemedText>
+            <Switch
+              value={isPro}
+              onValueChange={(v) => setEntitlement(v ? 'pro' : 'free')}
+              trackColor={{ true: theme.primary }}
+            />
+          </View>
+        )}
       </Section>
 
       <Section title="About">
@@ -122,6 +159,26 @@ export default function SettingsScreen() {
       </Section>
     </ScrollView>
   );
+}
+
+function subscriptionLabel(status: SubStatus, expiresAt: string | null): string {
+  const date = expiresAt
+    ? new Date(expiresAt).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : null;
+  switch (status) {
+    case 'trial':
+      return date ? `Free trial · ends ${date}` : 'Free trial';
+    case 'active':
+      return date ? `Active · renews ${date}` : 'Active';
+    case 'expired':
+      return 'Expired';
+    default:
+      return 'Not subscribed';
+  }
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

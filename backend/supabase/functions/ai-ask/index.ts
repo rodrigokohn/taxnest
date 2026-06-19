@@ -10,7 +10,7 @@ import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 const MODEL = 'gpt-5.4-mini'; // per-user Q&A; bump to gpt-5.5 for more depth
 const DAILY_LIMIT = 40;
 
-const SYSTEM_PROMPT = `You are a helpful assistant inside FreelanceTax, an app for US freelancers.
+const SYSTEM_PROMPT = `You are a helpful assistant inside Taxnest, an app for US freelancers.
 Answer general questions about US self-employment taxes (Schedule C / SE tax, estimated
 quarterly taxes, deductions, QBI, safe harbor, filing status) clearly and concisely.
 

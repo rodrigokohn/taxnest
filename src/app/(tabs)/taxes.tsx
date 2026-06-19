@@ -68,7 +68,7 @@ export default function TaxesScreen() {
     Alert.alert(
       'How to pay the IRS',
       'Pay estimated taxes online via IRS Direct Pay (irs.gov/payments) or EFTPS. ' +
-        'FreelanceTax doesn’t process payments — it helps you plan.\n\n' +
+        'Taxnest doesn’t process payments — it helps you plan.\n\n' +
         'This is an estimate for planning purposes only, not tax advice.',
     );
   }

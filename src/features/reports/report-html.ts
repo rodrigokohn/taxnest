@@ -14,7 +14,7 @@ const CATEGORY_LABELS: Record<DeductionCategory, string> = {
 };
 
 const DISCLAIMER =
-  'FreelanceTax provides estimates for planning purposes only. It is not tax, legal, or ' +
+  'Taxnest provides estimates for planning purposes only. It is not tax, legal, or ' +
   'financial advice and does not replace a licensed tax professional.';
 
 function row(label: string, value: string, strong = false): string {
@@ -63,7 +63,7 @@ export function buildReportHtml(data: ReportData): string {
 </style></head>
 <body>
   <div class="header">
-    <h1>FreelanceTax — ${data.year} Tax Summary</h1>
+    <h1>Taxnest — ${data.year} Tax Summary</h1>
     <div class="muted">${FILING_STATUS_LABELS[profile.filing_status]} · ${stateName(profile.state)}</div>
   </div>
 

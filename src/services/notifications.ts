@@ -47,7 +47,7 @@ export async function scheduleQuarterlyReminders(
     await Notifications.scheduleNotificationAsync({
       content: {
         title: `Q${i + 1} estimated tax is coming up`,
-        body: `Your Q${i + 1} payment is due ${label}. Open FreelanceTax to see how much to pay.`,
+        body: `Your Q${i + 1} payment is due ${label}. Open Taxnest to see how much to pay.`,
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: remindAt },
     });

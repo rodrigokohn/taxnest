@@ -1,0 +1,9 @@
+# Minimal Supabase CLI config for remote deploys (functions + secrets).
+# The project is managed in the dashboard; local dev stack isn't used here.
+project_id = "freelancetax"
+
+[functions.ai-ask]
+verify_jwt = true
+
+[functions.ai-refresh-config]
+verify_jwt = true
