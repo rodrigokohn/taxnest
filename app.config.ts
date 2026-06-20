@@ -20,6 +20,11 @@ const config: ExpoConfig = {
     supportsTablet: false,
     bundleIdentifier: 'com.rodrigokohn.freelancetax',
     usesAppleSignIn: true,
+    // The app only uses standard HTTPS/TLS (exempt) — declare it so the App Store
+    // upload doesn't ask the export-compliance question on every build.
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     adaptiveIcon: {
