@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
+import { AnimatedEntrance } from '@/components/animated-entrance';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { IconSymbol, type IconSymbolName } from '@/components/icon-symbol';
@@ -10,6 +11,7 @@ import { deductionRepo } from '@/data';
 import { DEDUCTION_CATEGORIES, type Deduction, type DeductionCategory } from '@/domain';
 import { Radius, Spacing, useTheme } from '@/design';
 import { formatUSD } from '@/lib/money';
+import { useCountUp } from '@/lib/use-count-up';
 import { computeAnnualTax } from '@/tax-engine';
 import { usePaymentsStore, useProfileStore, useTaxConfigStore } from '@/store';
 
@@ -23,6 +25,23 @@ const META: Record<DeductionCategory, { label: string; icon: IconSymbolName }> =
   other: { label: 'Other', icon: 'ellipsis.circle.fill' },
 };
 
+// Left inset so row separators align under the category label (icon circle + gap).
+const ROW_TEXT_INSET = Spacing.lg + 38 + Spacing.md;
+
+/** Keep only digits and a single decimal point with up to 2 places. */
+function sanitizeAmount(t: string): string {
+  const cleaned = t.replace(/[^0-9.]/g, '');
+  const dot = cleaned.indexOf('.');
+  if (dot === -1) return cleaned;
+  return (
+    cleaned.slice(0, dot + 1) +
+    cleaned
+      .slice(dot + 1)
+      .replace(/\./g, '')
+      .slice(0, 2)
+  );
+}
+
 /** Deductions (PRD §8.5, Pro). The impact line is the hook. */
 export function DeductionsScreen() {
   const theme = useTheme();
@@ -33,7 +52,8 @@ export function DeductionsScreen() {
   const [items, setItems] = useState<Deduction[]>([]);
   const [adding, setAdding] = useState(false);
   const [category, setCategory] = useState<DeductionCategory>('home_office');
-  const [amount, setAmount] = useState(0);
+  const [amountText, setAmountText] = useState('');
+  const amount = parseFloat(amountText) || 0;
 
   const load = () => deductionRepo.listByYear(DEFAULT_TAX_YEAR).then(setItems);
   useEffect(() => {
@@ -41,6 +61,7 @@ export function DeductionsScreen() {
   }, []);
 
   const total = useMemo(() => items.reduce((s, d) => s + d.amount, 0), [items]);
+  const totalValue = useCountUp(total);
 
   const impact = useMemo(() => {
     if (!profile || !config) return 0;
@@ -62,7 +83,7 @@ export function DeductionsScreen() {
       date: new Date().toISOString().slice(0, 10),
       tax_year: DEFAULT_TAX_YEAR,
     });
-    setAmount(0);
+    setAmountText('');
     setAdding(false);
     load();
   }
@@ -77,30 +98,61 @@ export function DeductionsScreen() {
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <ThemedText variant="secondary" color="textSecondary">
-          Deductions · {DEFAULT_TAX_YEAR}
-        </ThemedText>
-        <ThemedText variant="heroNumber">{formatUSD(total)}</ThemedText>
-        {impact > 0 && (
-          <ThemedText variant="body" color="success">
-            ↓ Lowered your projected tax by {formatUSD(impact)}
+      <AnimatedEntrance index={0}>
+        <View style={[styles.summary, { backgroundColor: theme.primaryTint }]}>
+          <ThemedText variant="secondary" color="textSecondary">
+            Total deductions · {DEFAULT_TAX_YEAR}
           </ThemedText>
-        )}
-      </View>
-
-      {items.map((d) => (
-        <View key={d.id} style={styles.row}>
-          <IconSymbol name={META[d.category].icon} color={theme.primary} size={22} />
-          <ThemedText variant="body" style={styles.rowLabel}>
-            {META[d.category].label}
+          <ThemedText variant="heroNumber" style={styles.summaryNumber}>
+            {formatUSD(totalValue)}
           </ThemedText>
-          <ThemedText variant="body">{formatUSD(d.amount)}</ThemedText>
-          <Pressable onPress={() => remove(d.id)} hitSlop={8} accessibilityLabel="Delete deduction">
-            <IconSymbol name="trash" color={theme.textTertiary} size={18} />
-          </Pressable>
+          {impact > 0 ? (
+            <View style={styles.impactRow}>
+              <IconSymbol name="arrow.down.circle.fill" color={theme.success} size={18} />
+              <ThemedText variant="body" color="success">
+                Lowers your projected tax by {formatUSD(impact)}
+              </ThemedText>
+            </View>
+          ) : (
+            <ThemedText variant="secondary" color="textSecondary">
+              Log business expenses to lower your taxable income.
+            </ThemedText>
+          )}
         </View>
-      ))}
+      </AnimatedEntrance>
+
+      {items.length > 0 && (
+        <AnimatedEntrance index={1}>
+          <View
+            style={[styles.group, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            {items.map((d, i) => (
+              <Fragment key={d.id}>
+                <View style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: theme.primaryTint }]}>
+                    <IconSymbol name={META[d.category].icon} color={theme.primary} size={18} />
+                  </View>
+                  <ThemedText variant="body" style={styles.rowLabel}>
+                    {META[d.category].label}
+                  </ThemedText>
+                  <ThemedText variant="body" style={styles.tabular}>
+                    {formatUSD(d.amount)}
+                  </ThemedText>
+                  <Pressable
+                    onPress={() => remove(d.id)}
+                    hitSlop={8}
+                    accessibilityLabel="Delete deduction"
+                    style={styles.deleteBtn}>
+                    <IconSymbol name="trash" color={theme.textTertiary} size={17} />
+                  </Pressable>
+                </View>
+                {i < items.length - 1 && (
+                  <View style={[styles.separator, { backgroundColor: theme.border }]} />
+                )}
+              </Fragment>
+            ))}
+          </View>
+        </AnimatedEntrance>
+      )}
 
       {adding ? (
         <Card style={styles.form}>
@@ -127,9 +179,9 @@ export function DeductionsScreen() {
               $
             </ThemedText>
             <TextInput
-              keyboardType="number-pad"
-              value={amount > 0 ? String(amount) : ''}
-              onChangeText={(t) => setAmount(Number(t.replace(/[^0-9]/g, '')) || 0)}
+              keyboardType="decimal-pad"
+              value={amountText}
+              onChangeText={(t) => setAmountText(sanitizeAmount(t))}
               placeholder="0"
               placeholderTextColor={theme.textTertiary}
               style={[styles.amountInput, { color: theme.textPrimary }]}
@@ -146,10 +198,38 @@ export function DeductionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.xxxl },
-  header: { gap: Spacing.xs, paddingBottom: Spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm },
+  content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Spacing.xxxl },
+  summary: { gap: Spacing.xs, padding: Spacing.xl, borderRadius: Radius.xl },
+  summaryNumber: { fontSize: 40, lineHeight: 46 },
+  impactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.xxs,
+  },
+  group: {
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  rowIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   rowLabel: { flex: 1 },
+  tabular: { fontVariant: ['tabular-nums'] },
+  deleteBtn: { padding: Spacing.xs },
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: ROW_TEXT_INSET },
   form: { gap: Spacing.md },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   chip: {
