@@ -12,11 +12,16 @@ const config: ExpoConfig = {
   slug: 'freelancetax',
   version: '0.1.0',
   orientation: 'portrait',
-  icon: './assets/images/icon.png',
+  icon: './assets/images/icon-light.png',
   scheme: 'freelancetax',
   userInterfaceStyle: 'automatic',
   ios: {
-    icon: './assets/expo.icon',
+    // iOS 18 light/dark app icons. Light is opaque (also the App Store marketing
+    // icon); dark is transparent so the system composites it on a dark background.
+    icon: {
+      light: './assets/images/icon-light.png',
+      dark: './assets/images/icon-dark.png',
+    },
     supportsTablet: false,
     bundleIdentifier: 'com.rodrigokohn.freelancetax',
     usesAppleSignIn: true,
