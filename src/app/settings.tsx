@@ -6,6 +6,7 @@ import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, View } from 
 import { IconSymbol } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { isProNow, useEntitlementStore, useIsPro, type SubStatus } from '@/config/gating';
+import { PRIVACY_URL, TERMS_URL } from '@/config/legal';
 import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { FILING_STATUS_LABELS } from '@/domain';
 import { Radius, Spacing, useTheme } from '@/design';
@@ -179,6 +180,24 @@ export default function SettingsScreen() {
         <ThemedText variant="secondary" color="textSecondary" style={styles.disclaimer}>
           {DISCLAIMER}
         </ThemedText>
+        <Pressable
+          onPress={() => Linking.openURL(TERMS_URL)}
+          style={styles.row}
+          accessibilityRole="link">
+          <ThemedText variant="body" color="primary">
+            Terms of Service
+          </ThemedText>
+          <IconSymbol name="arrow.up.right" color={theme.textTertiary} size={13} />
+        </Pressable>
+        <Pressable
+          onPress={() => Linking.openURL(PRIVACY_URL)}
+          style={styles.row}
+          accessibilityRole="link">
+          <ThemedText variant="body" color="primary">
+            Privacy Policy
+          </ThemedText>
+          <IconSymbol name="arrow.up.right" color={theme.textTertiary} size={13} />
+        </Pressable>
         <Row label="Version" value={Constants.expoConfig?.version ?? '—'} />
       </Section>
 

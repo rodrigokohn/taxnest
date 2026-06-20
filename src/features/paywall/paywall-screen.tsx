@@ -16,6 +16,7 @@ import { Button } from '@/components/button';
 import { IconSymbol, type IconSymbolName } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { isProNow, useEntitlementStore } from '@/config/gating';
+import { PRIVACY_URL, TERMS_URL } from '@/config/legal';
 import { Radius, ScreenPadding, Spacing, useTheme } from '@/design';
 import {
   freeTrialLabel,
@@ -26,10 +27,6 @@ import {
 } from '@/services/purchases';
 import { useProfileStore, useTaxConfigStore } from '@/store';
 import { computeAnnualTax } from '@/tax-engine';
-
-// TODO(launch): point these at the real hosted pages before App Store submission.
-const TERMS_URL = 'https://freelancetax.app/terms';
-const PRIVACY_URL = 'https://freelancetax.app/privacy';
 
 const FEATURES: { icon: IconSymbolName; text: string }[] = [
   { icon: 'chart.bar.fill', text: 'Know what to set aside on every payment' },
