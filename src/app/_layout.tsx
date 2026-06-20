@@ -14,6 +14,7 @@ import {
   purchasesReady,
 } from '@/services/purchases';
 import { useAuthStore, useProfileStore, useTaxConfigStore } from '@/store';
+import { useThemeStore } from '@/store/theme-store';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -46,6 +47,7 @@ export default function RootLayout() {
   useEffect(() => {
     configurePurchases();
     onCustomerInfoUpdate((info) => useEntitlementStore.getState().applyCustomerInfo(info));
+    useThemeStore.getState().init();
     initAuth();
     loadProfile();
     loadConfig(DEFAULT_TAX_YEAR);
@@ -103,19 +105,15 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="sign-in" options={{ gestureEnabled: false }} />
           <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
           <Stack.Screen name="paywall" options={{ gestureEnabled: false }} />
-          <Stack.Screen
-            name="add-income"
-            options={{ presentation: 'modal', title: 'Add income' }}
-          />
           <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
           <Stack.Screen name="deductions" options={{ headerShown: true, title: 'Deductions' }} />
           <Stack.Screen name="reports" options={{ headerShown: true, title: 'Reports' }} />
-          <Stack.Screen name="ask" options={{ headerShown: true, title: 'Ask' }} />
+          <Stack.Screen name="ask" options={{ headerShown: true, title: 'Assistant' }} />
           <Stack.Screen
             name="edit-profile"
             options={{ headerShown: true, title: 'Edit profile' }}

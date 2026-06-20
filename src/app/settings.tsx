@@ -19,6 +19,7 @@ import {
 } from '@/services/notifications';
 import { restorePurchases } from '@/services/purchases';
 import { useAuthStore, useProfileStore, useTaxConfigStore } from '@/store';
+import { useThemeStore, type ThemePreference } from '@/store/theme-store';
 
 const DISCLAIMER =
   'Taxnest provides estimates for planning purposes only. It is not tax, legal, or ' +
@@ -35,6 +36,8 @@ export default function SettingsScreen() {
   const config = useTaxConfigStore((s) => s.config);
   const router = useRouter();
   const signOut = useAuthStore((s) => s.signOut);
+  const themePreference = useThemeStore((s) => s.preference);
+  const setThemePreference = useThemeStore((s) => s.setPreference);
 
   function confirmSignOut() {
     Alert.alert('Sign out', 'Sign out of Taxnest?', [
@@ -118,6 +121,21 @@ export default function SettingsScreen() {
         </View>
       </Section>
 
+      <View style={styles.section}>
+        <ThemedText variant="caption" color="textTertiary" style={styles.sectionTitle}>
+          APPEARANCE
+        </ThemedText>
+        <Segmented
+          value={themePreference}
+          onChange={setThemePreference}
+          options={[
+            { value: 'system', label: 'System' },
+            { value: 'light', label: 'Light' },
+            { value: 'dark', label: 'Dark' },
+          ]}
+        />
+      </View>
+
       <Section title="Subscription">
         <Row label="Current plan" value={subscriptionLabel(status, expiresAt)} />
         <Pressable onPress={manageSubscription} style={styles.row} accessibilityRole="button">
@@ -132,14 +150,28 @@ export default function SettingsScreen() {
           </ThemedText>
         </Pressable>
         {__DEV__ && (
-          <View style={styles.row}>
-            <ThemedText variant="body">Simulate Pro (dev)</ThemedText>
-            <Switch
-              value={isPro}
-              onValueChange={(v) => setEntitlement(v ? 'pro' : 'free')}
-              trackColor={{ true: theme.primary }}
-            />
-          </View>
+          <>
+            <View style={styles.row}>
+              <ThemedText variant="body">Simulate Pro (dev)</ThemedText>
+              <Switch
+                value={isPro}
+                onValueChange={(v) => setEntitlement(v ? 'pro' : 'free')}
+                trackColor={{ true: theme.primary }}
+              />
+            </View>
+            <Pressable
+              onPress={() => {
+                // Clear the dev entitlement too, so the re-run lands on the paywall.
+                setEntitlement('free');
+                useProfileStore.getState().reset();
+              }}
+              style={styles.row}
+              accessibilityRole="button">
+              <ThemedText variant="body" color="primary">
+                Reset onboarding (dev)
+              </ThemedText>
+            </Pressable>
+          </>
         )}
       </Section>
 
@@ -179,6 +211,39 @@ function subscriptionLabel(status: SubStatus, expiresAt: string | null): string 
     default:
       return 'Not subscribed';
   }
+}
+
+function Segmented({
+  value,
+  onChange,
+  options,
+}: {
+  value: ThemePreference;
+  onChange: (v: ThemePreference) => void;
+  options: { value: ThemePreference; label: string }[];
+}) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.segmented, { backgroundColor: theme.surface }]}>
+      {options.map((opt) => {
+        const active = opt.value === value;
+        return (
+          <Pressable
+            key={opt.value}
+            onPress={() => onChange(opt.value)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            style={[styles.segment, active && { backgroundColor: theme.primary }]}>
+            <ThemedText
+              variant="secondary"
+              style={{ color: active ? '#FFFFFF' : theme.textSecondary }}>
+              {opt.label}
+            </ThemedText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -222,4 +287,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   disclaimer: { padding: Spacing.lg, lineHeight: 22 },
+  segmented: { flexDirection: 'row', borderRadius: Radius.md, padding: 3, gap: 3 },
+  segment: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radius.sm, alignItems: 'center' },
 });

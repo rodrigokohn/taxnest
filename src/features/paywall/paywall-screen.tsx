@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -9,12 +9,14 @@ import {
   View,
 } from 'react-native';
 import { type PurchasesPackage } from 'react-native-purchases';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { Button } from '@/components/button';
 import { IconSymbol, type IconSymbolName } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { isProNow, useEntitlementStore } from '@/config/gating';
-import { Radius, Spacing, useTheme } from '@/design';
+import { Radius, ScreenPadding, Spacing, useTheme } from '@/design';
 import {
   freeTrialLabel,
   getSubscriptionPackages,
@@ -22,6 +24,8 @@ import {
   purchasePackage,
   restorePurchases,
 } from '@/services/purchases';
+import { useProfileStore, useTaxConfigStore } from '@/store';
+import { computeAnnualTax } from '@/tax-engine';
 
 // TODO(launch): point these at the real hosted pages before App Store submission.
 const TERMS_URL = 'https://freelancetax.app/terms';
@@ -32,7 +36,7 @@ const FEATURES: { icon: IconSymbolName; text: string }[] = [
   { icon: 'building.columns.fill', text: 'Federal + state tax estimates' },
   { icon: 'tag.fill', text: 'Track deductions to lower your bill' },
   { icon: 'doc.text.fill', text: 'Accountant-ready PDF reports' },
-  { icon: 'bubble.left.fill', text: 'Ask AI your freelance tax questions' },
+  { icon: 'sparkles', text: 'AI assistant for your tax questions' },
   { icon: 'bell.fill', text: 'Quarterly deadline reminders' },
 ];
 
@@ -41,12 +45,29 @@ type PlanKey = 'annual' | 'monthly';
 export function PaywallScreen() {
   const theme = useTheme();
   const setEntitlement = useEntitlementStore((s) => s.setEntitlement);
+  const profile = useProfileStore((s) => s.profile);
+  const config = useTaxConfigStore((s) => s.config);
 
   const [annual, setAnnual] = useState<PurchasesPackage | null>(null);
   const [monthly, setMonthly] = useState<PurchasesPackage | null>(null);
   const [selected, setSelected] = useState<PlanKey>('annual');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+
+  // Personalized set-aside rate from the quiz/profile (same math as the reveal).
+  const rate = useMemo(() => {
+    if (!profile || !config || profile.estimated_annual_income <= 0) return null;
+    const b = computeAnnualTax(
+      {
+        filing_status: profile.filing_status,
+        state: profile.state,
+        net_profit: profile.estimated_annual_income,
+      },
+      config,
+    );
+    const tax = b.se.seTax + b.federalIncomeTax + b.stateTax;
+    return Math.round((tax / profile.estimated_annual_income) * 100);
+  }, [profile, config]);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +96,6 @@ export function PaywallScreen() {
     try {
       const info = await purchasePackage(pkg);
       useEntitlementStore.getState().applyCustomerInfo(info);
-      // The root gate routes to the app once the entitlement flips to `pro`.
     } catch (err) {
       if (!isUserCancelled(err)) Alert.alert('Purchase failed', 'Please try again.');
     } finally {
@@ -100,122 +120,163 @@ export function PaywallScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
+      <View style={[styles.fill, styles.center, { backgroundColor: theme.background }]}>
         <ActivityIndicator color={theme.primary} />
       </View>
     );
   }
 
   const hasPlans = Boolean(annual || monthly);
-  const cta = trial ? 'Start free trial' : 'Subscribe';
+  const ctaLabel = trial ? 'Try it free for 30 days' : 'Subscribe';
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}>
-      <View style={styles.hero}>
-        <IconSymbol name="leaf.fill" color={theme.primary} size={44} />
-        <ThemedText variant="screenTitle" style={styles.center}>
-          Unlock Taxnest
-        </ThemedText>
-        <ThemedText variant="body" color="textSecondary" style={styles.center}>
-          {trial
-            ? `Try everything free for ${trial.replace(' free trial', '')}. Cancel anytime.`
-            : 'Everything you need to stay ahead of your taxes.'}
-        </ThemedText>
-      </View>
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <GlowBg color={theme.primary} />
+      <SafeAreaView edges={['top', 'bottom']} style={styles.fill}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <View style={styles.hero}>
+            <GlowIcon icon="leaf.fill" />
+            <ThemedText variant="screenTitle" style={[styles.center, styles.title]}>
+              Stay ahead of every tax bill
+            </ThemedText>
+            {rate != null && (
+              <View style={[styles.planChip, { backgroundColor: theme.primaryTint }]}>
+                <IconSymbol name="chart.bar.fill" color={theme.primary} size={15} />
+                <ThemedText variant="secondary" color="primary" style={styles.planChipText}>
+                  Your plan: set aside {rate}% of every payment
+                </ThemedText>
+              </View>
+            )}
+          </View>
 
-      <View style={styles.features}>
-        {FEATURES.map((f) => (
-          <View key={f.text} style={styles.featureRow}>
-            <IconSymbol name={f.icon} color={theme.primary} size={20} />
-            <ThemedText variant="body" style={styles.featureText}>
-              {f.text}
+          <View style={styles.features}>
+            {FEATURES.map((f) => (
+              <View key={f.text} style={styles.featureRow}>
+                <View style={[styles.featureIcon, { backgroundColor: theme.primaryTint }]}>
+                  <IconSymbol name={f.icon} color={theme.primary} size={18} />
+                </View>
+                <ThemedText variant="body" style={styles.featureText}>
+                  {f.text}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+
+          <View
+            style={[styles.social, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.stars}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <IconSymbol key={i} name="star.fill" color={theme.warning} size={15} />
+              ))}
+            </View>
+            <ThemedText variant="secondary" color="textSecondary" style={styles.center}>
+              “I finally stopped panicking about taxes every April.”
             </ThemedText>
           </View>
-        ))}
-      </View>
 
-      {hasPlans ? (
-        <View style={styles.plans}>
-          {annual && (
-            <PlanCard
-              label="Annual"
-              price={annual.product.priceString}
-              sublabel={
-                annual.product.pricePerMonthString
-                  ? `${annual.product.pricePerMonthString}/mo`
-                  : 'Billed yearly'
-              }
-              badge={savingsBadge(annual, monthly)}
-              selected={selected === 'annual'}
-              onPress={() => setSelected('annual')}
-            />
+          {hasPlans ? (
+            <View style={styles.plans}>
+              {annual && (
+                <PlanCard
+                  label="Annual"
+                  price={
+                    annual.product.pricePerMonthString
+                      ? `${annual.product.pricePerMonthString}/mo`
+                      : annual.product.priceString
+                  }
+                  sublabel={`${annual.product.priceString} billed yearly`}
+                  badge={savingsBadge(annual, monthly)}
+                  popular
+                  selected={selected === 'annual'}
+                  onPress={() => setSelected('annual')}
+                />
+              )}
+              {monthly && (
+                <PlanCard
+                  label="Monthly"
+                  price={monthly.product.priceString}
+                  sublabel="Billed monthly"
+                  selected={selected === 'monthly'}
+                  onPress={() => setSelected('monthly')}
+                />
+              )}
+            </View>
+          ) : (
+            <ThemedText variant="body" color="textSecondary" style={styles.center}>
+              Subscriptions aren’t available right now. Please try again in a moment.
+            </ThemedText>
           )}
-          {monthly && (
-            <PlanCard
-              label="Monthly"
-              price={monthly.product.priceString}
-              sublabel="Billed monthly"
-              selected={selected === 'monthly'}
-              onPress={() => setSelected('monthly')}
-            />
+        </ScrollView>
+
+        <View style={styles.footer}>
+          {hasPlans && <Button title={ctaLabel} loading={busy} onPress={startTrial} />}
+          {pkg && (
+            <ThemedText variant="caption" color="textTertiary" style={styles.center}>
+              {trial ? `${cap(trial)}, then ` : ''}
+              {pkg.product.priceString}/{selected === 'annual' ? 'year' : 'month'} · No charge today
+              · Cancel anytime
+            </ThemedText>
+          )}
+          <View style={styles.footerLinks}>
+            <Pressable onPress={onRestore} disabled={busy} accessibilityRole="button">
+              <ThemedText variant="caption" color="primary">
+                Restore
+              </ThemedText>
+            </Pressable>
+            <ThemedText variant="caption" color="textTertiary">
+              ·
+            </ThemedText>
+            <Pressable onPress={() => Linking.openURL(TERMS_URL)} accessibilityRole="link">
+              <ThemedText variant="caption" color="textTertiary">
+                Terms
+              </ThemedText>
+            </Pressable>
+            <ThemedText variant="caption" color="textTertiary">
+              ·
+            </ThemedText>
+            <Pressable onPress={() => Linking.openURL(PRIVACY_URL)} accessibilityRole="link">
+              <ThemedText variant="caption" color="textTertiary">
+                Privacy
+              </ThemedText>
+            </Pressable>
+          </View>
+          {__DEV__ && (
+            <Pressable
+              onPress={() => setEntitlement('pro')}
+              accessibilityRole="button"
+              style={styles.devSkip}>
+              <ThemedText variant="caption" color="textTertiary">
+                Skip for now (dev)
+              </ThemedText>
+            </Pressable>
           )}
         </View>
-      ) : (
-        <ThemedText variant="body" color="textSecondary" style={styles.center}>
-          Subscriptions aren’t available right now. Please try again in a moment.
-        </ThemedText>
-      )}
+      </SafeAreaView>
+    </View>
+  );
+}
 
-      {hasPlans && <Button title={cta} loading={busy} onPress={startTrial} style={styles.cta} />}
+function GlowBg({ color }: { color: string }) {
+  return (
+    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Defs>
+        <RadialGradient id="paywallGlow" cx="50%" cy="2%" r="70%">
+          <Stop offset="0%" stopColor={color} stopOpacity={0.2} />
+          <Stop offset="100%" stopColor={color} stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#paywallGlow)" />
+    </Svg>
+  );
+}
 
-      {pkg && (
-        <ThemedText variant="caption" color="textTertiary" style={styles.center}>
-          {trial ? `${cap(trial)}, then ` : ''}
-          {pkg.product.priceString}/{selected === 'annual' ? 'year' : 'month'}. Auto-renews until
-          cancelled.
-        </ThemedText>
-      )}
-
-      <Pressable
-        onPress={onRestore}
-        disabled={busy}
-        style={styles.restore}
-        accessibilityRole="button">
-        <ThemedText variant="body" color="primary">
-          Restore purchases
-        </ThemedText>
-      </Pressable>
-
-      <View style={styles.legalRow}>
-        <Pressable onPress={() => Linking.openURL(TERMS_URL)} accessibilityRole="link">
-          <ThemedText variant="caption" color="textTertiary">
-            Terms
-          </ThemedText>
-        </Pressable>
-        <ThemedText variant="caption" color="textTertiary">
-          ·
-        </ThemedText>
-        <Pressable onPress={() => Linking.openURL(PRIVACY_URL)} accessibilityRole="link">
-          <ThemedText variant="caption" color="textTertiary">
-            Privacy
-          </ThemedText>
-        </Pressable>
-      </View>
-
-      {__DEV__ && (
-        <Pressable
-          onPress={() => setEntitlement('pro')}
-          style={styles.devSkip}
-          accessibilityRole="button">
-          <ThemedText variant="caption" color="textTertiary">
-            Skip for now (dev)
-          </ThemedText>
-        </Pressable>
-      )}
-    </ScrollView>
+function GlowIcon({ icon }: { icon: IconSymbolName }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[styles.glowIcon, { backgroundColor: theme.primaryTint, shadowColor: theme.primary }]}>
+      <IconSymbol name={icon} color={theme.primary} size={34} />
+    </View>
   );
 }
 
@@ -224,6 +285,7 @@ function PlanCard({
   price,
   sublabel,
   badge,
+  popular,
   selected,
   onPress,
 }: {
@@ -231,6 +293,7 @@ function PlanCard({
   price: string;
   sublabel: string;
   badge?: string | null;
+  popular?: boolean;
   selected: boolean;
   onPress: () => void;
 }) {
@@ -239,26 +302,51 @@ function PlanCard({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityState={{ selected }}
       style={[
         styles.plan,
-        { borderColor: selected ? theme.primary : theme.border, backgroundColor: theme.surface },
-        selected && { borderWidth: 2 },
+        { backgroundColor: theme.surface, borderColor: selected ? theme.primary : theme.border },
+        selected && {
+          borderWidth: 2,
+          shadowColor: theme.primary,
+          shadowOpacity: 0.3,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 6,
+        },
       ]}>
-      <View style={styles.planMain}>
-        <ThemedText variant="sectionHeader">{label}</ThemedText>
-        <ThemedText variant="caption" color="textTertiary">
-          {sublabel}
-        </ThemedText>
-      </View>
-      <View style={styles.planRight}>
-        {badge && (
-          <View style={[styles.badge, { backgroundColor: theme.primary }]}>
-            <ThemedText variant="caption" style={styles.badgeText}>
-              {badge}
-            </ThemedText>
-          </View>
-        )}
-        <ThemedText variant="body">{price}</ThemedText>
+      {popular && (
+        <View style={[styles.popular, { backgroundColor: theme.primary }]}>
+          <ThemedText variant="caption" style={styles.popularText}>
+            MOST POPULAR
+          </ThemedText>
+        </View>
+      )}
+      <View style={styles.planRow}>
+        <View
+          style={[
+            styles.radio,
+            { borderColor: selected ? theme.primary : theme.border },
+            selected && { backgroundColor: theme.primary },
+          ]}>
+          {selected && <IconSymbol name="checkmark" color="#FFFFFF" size={13} />}
+        </View>
+        <View style={styles.planMain}>
+          <ThemedText variant="sectionHeader">{label}</ThemedText>
+          <ThemedText variant="caption" color="textTertiary">
+            {sublabel}
+          </ThemedText>
+        </View>
+        <View style={styles.planRight}>
+          <ThemedText variant="sectionHeader">{price}</ThemedText>
+          {badge && (
+            <View style={[styles.badge, { backgroundColor: theme.primaryTint }]}>
+              <ThemedText variant="caption" color="primary" style={styles.badgeText}>
+                {badge}
+              </ThemedText>
+            </View>
+          )}
+        </View>
       </View>
     </Pressable>
   );
@@ -283,27 +371,82 @@ function cap(s: string): string {
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  root: { flex: 1 },
   center: { textAlign: 'center', alignItems: 'center', justifyContent: 'center' },
-  content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Spacing.xxxl },
-  hero: { alignItems: 'center', gap: Spacing.sm, paddingTop: Spacing.xl },
-  features: { gap: Spacing.md, paddingHorizontal: Spacing.xs },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  featureText: { flex: 1 },
-  plans: { gap: Spacing.md },
-  plan: {
+  scroll: {
+    paddingHorizontal: ScreenPadding,
+    paddingTop: Spacing.md,
+    gap: Spacing.xl,
+    paddingBottom: Spacing.lg,
+  },
+  hero: { alignItems: 'center', gap: Spacing.md, paddingTop: Spacing.sm },
+  glowIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOpacity: 0.5,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  title: { fontSize: 26, lineHeight: 32 },
+  planChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.pill,
+  },
+  planChipText: { fontWeight: '600' },
+  features: { gap: Spacing.md },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  featureIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featureText: { flex: 1 },
+  social: {
+    alignItems: 'center',
+    gap: Spacing.xs,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
   },
-  planMain: { gap: 2 },
-  planRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  badge: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.pill },
-  badgeText: { color: '#FFFFFF' },
-  cta: { marginTop: Spacing.sm },
-  restore: { alignItems: 'center', paddingVertical: Spacing.sm },
-  legalRow: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.sm },
-  devSkip: { alignItems: 'center', paddingVertical: Spacing.md },
+  stars: { flexDirection: 'row', gap: 3 },
+  plans: { gap: Spacing.md },
+  plan: { borderWidth: 1.5, borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm },
+  popular: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Radius.pill,
+  },
+  popularText: { color: '#FFFFFF', fontWeight: '700', letterSpacing: 0.5 },
+  planRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: Radius.pill,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  planMain: { flex: 1, gap: 2 },
+  planRight: { alignItems: 'flex-end', gap: 4 },
+  badge: { paddingHorizontal: Spacing.sm, paddingVertical: 1, borderRadius: Radius.pill },
+  badgeText: { fontWeight: '700' },
+  footer: { paddingHorizontal: ScreenPadding, paddingTop: Spacing.sm, gap: Spacing.sm },
+  footerLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  devSkip: { alignItems: 'center', paddingTop: Spacing.xs },
 });

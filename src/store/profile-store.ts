@@ -9,6 +9,8 @@ type ProfileState = {
   load: () => Promise<void>;
   save: (profile: UserProfile) => Promise<void>;
   update: (patch: Partial<UserProfile>) => Promise<void>;
+  /** DEV: drop the in-memory profile so the gate re-shows onboarding (until reload). */
+  reset: () => void;
 };
 
 export const useProfileStore = create<ProfileState>()((set, get) => ({
@@ -35,5 +37,9 @@ export const useProfileStore = create<ProfileState>()((set, get) => ({
     };
     await userProfileRepo.save(updated);
     set({ profile: updated });
+  },
+
+  reset() {
+    set({ profile: null });
   },
 }));

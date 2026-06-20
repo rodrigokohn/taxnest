@@ -1,83 +1,37 @@
-import { Tabs, useRouter } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
-import { IconSymbol } from '@/components/icon-symbol';
-import { Radius, useTheme } from '@/design';
+import { useTheme } from '@/design';
 
 /**
- * Bottom tab bar (PRD §8.0): Home · Income · [ + ] · Taxes · More.
- * The center [+] is the global primary action — it opens the Add income
- * bottom sheet (modal) rather than navigating to a tab.
+ * Native bottom tabs (UITabBar → iOS 26 Liquid Glass). The center "Add" tab is a
+ * launcher that opens the Add income modal (see (tabs)/add.tsx). Active tint
+ * comes from the app theme.
  */
 export default function TabsLayout() {
   const theme = useTheme();
-  const router = useRouter();
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.textTertiary,
-        tabBarStyle: { backgroundColor: theme.background, borderTopColor: theme.border },
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol name="house.fill" color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="income"
-        options={{
-          title: 'Income',
-          tabBarIcon: ({ color }) => <IconSymbol name="list.bullet" color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="add"
-        options={{
-          title: '',
-          tabBarButton: () => (
-            <View style={styles.centerSlot} pointerEvents="box-none">
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Add income"
-                onPress={() => router.navigate('/add-income')}
-                style={[styles.centerButton, { backgroundColor: theme.primary }]}>
-                <IconSymbol name="plus" color="#FFFFFF" size={28} />
-              </Pressable>
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="taxes"
-        options={{
-          title: 'Taxes',
-          tabBarIcon: ({ color }) => <IconSymbol name="calendar" color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="more"
-        options={{
-          title: 'More',
-          tabBarIcon: ({ color }) => <IconSymbol name="ellipsis" color={color} size={24} />,
-        }}
-      />
-    </Tabs>
+    <NativeTabs tintColor={theme.primary}>
+      <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Icon sf="house.fill" />
+        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="income">
+        <NativeTabs.Trigger.Icon sf="list.bullet" />
+        <NativeTabs.Trigger.Label>Income</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="add">
+        <NativeTabs.Trigger.Icon sf="plus.circle.fill" />
+        <NativeTabs.Trigger.Label>Add</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="taxes">
+        <NativeTabs.Trigger.Icon sf="calendar" />
+        <NativeTabs.Trigger.Label>Taxes</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="more">
+        <NativeTabs.Trigger.Icon sf="ellipsis" />
+        <NativeTabs.Trigger.Label>More</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
-
-const styles = StyleSheet.create({
-  centerSlot: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  centerButton: {
-    width: 52,
-    height: 52,
-    borderRadius: Radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -6,
-  },
-});

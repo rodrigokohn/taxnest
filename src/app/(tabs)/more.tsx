@@ -11,7 +11,12 @@ type Item = { title: string; subtitle: string; icon: IconSymbolName; href: Href 
 const ITEMS: Item[] = [
   { title: 'Deductions', subtitle: 'Lower your tax bill', icon: 'tag.fill', href: '/deductions' },
   { title: 'Reports', subtitle: 'Accountant-ready PDF', icon: 'doc.text.fill', href: '/reports' },
-  { title: 'Ask', subtitle: 'Tax questions, answered', icon: 'bubble.left.fill', href: '/ask' },
+  {
+    title: 'Assistant',
+    subtitle: 'AI answers for your tax questions',
+    icon: 'sparkles',
+    href: '/ask',
+  },
   {
     title: 'Settings',
     subtitle: 'Profile, notifications, more',

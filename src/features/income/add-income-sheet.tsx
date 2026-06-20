@@ -1,17 +1,19 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { isProNow } from '@/config/gating';
 import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { deductionRepo, incomeSourceRepo } from '@/data';
 import { Radius, Spacing, useTheme } from '@/design';
+import { highestMilestoneReached } from '@/features/dashboard/milestones';
+import { computeHabitData } from '@/features/dashboard/use-habit-data';
 import { formatUSD } from '@/lib/money';
 import { useCountUp } from '@/lib/use-count-up';
 import { haptics } from '@/services/haptics';
@@ -19,22 +21,56 @@ import { computeAnnualTax } from '@/tax-engine';
 import { usePaymentsStore, useProfileStore, useTaxConfigStore } from '@/store';
 
 type Delta = { se: number; federal: number; state: number };
+type HabitFeedback = { streak: number; total: number; milestone: number | null };
+
+/** Keep only digits and a single decimal point with up to 2 places. */
+function sanitizeAmount(t: string): string {
+  const cleaned = t.replace(/[^0-9.]/g, '');
+  const dot = cleaned.indexOf('.');
+  if (dot === -1) return cleaned;
+  return (
+    cleaned.slice(0, dot + 1) +
+    cleaned
+      .slice(dot + 1)
+      .replace(/\./g, '')
+      .slice(0, 2)
+  );
+}
 
 /** Add income (core loop, PRD §8.3): input → the "set aside" moment. */
 export function AddIncomeSheet() {
   const theme = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [stage, setStage] = useState<'input' | 'result'>('input');
-  const [amount, setAmount] = useState(0);
+  const [amountText, setAmountText] = useState('');
   const [note, setNote] = useState('');
   const [showNote, setShowNote] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [setAside, setSetAside] = useState(0);
   const [delta, setDelta] = useState<Delta>({ se: 0, federal: 0, state: 0 });
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [habitFeedback, setHabitFeedback] = useState<HabitFeedback | null>(null);
 
   const [date, setDate] = useState(new Date());
+  const amount = parseFloat(amountText) || 0;
+
+  // Reset to a fresh entry whenever the Add tab loses focus.
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        setStage('input');
+        setAmountText('');
+        setNote('');
+        setShowNote(false);
+        setShowBreakdown(false);
+        setHabitFeedback(null);
+        setDate(new Date());
+      },
+      [],
+    ),
+  );
 
   async function calculate() {
     const profile = useProfileStore.getState().profile;
@@ -51,14 +87,35 @@ export function AddIncomeSheet() {
     const before = computeAnnualTax({ ...taxProfile, net_profit: priorNetProfit }, config);
     const after = computeAnnualTax({ ...taxProfile, net_profit: priorNetProfit + amount }, config);
 
-    const includeState = isProNow(); // State tax is a Pro feature (PRD §11).
     const d: Delta = {
       se: after.se.seTax - before.se.seTax,
       federal: after.federalIncomeTax - before.federalIncomeTax,
-      state: includeState ? after.stateTax - before.stateTax : 0,
+      state: after.stateTax - before.stateTax,
     };
     setDelta(d);
-    setSetAside(Math.max(0, d.se + d.federal + d.state));
+    const setAsideValue = Math.max(0, d.se + d.federal + d.state);
+    setSetAside(setAsideValue);
+
+    // Habit feedback (streak + milestone) for the result, from the hypothetical
+    // state after this payment is added.
+    const payments = usePaymentsStore.getState().payments;
+    const beforeTotal = payments.reduce((sum, p) => sum + p.set_aside_amount, 0);
+    const habit = computeHabitData(
+      [
+        ...payments,
+        { amount, date: date.toISOString().slice(0, 10), set_aside_amount: setAsideValue },
+      ],
+      profile,
+      config,
+    );
+    const beforeMile = highestMilestoneReached(beforeTotal);
+    const afterMile = highestMilestoneReached(habit.totalSetAside);
+    setHabitFeedback({
+      streak: habit.coveredWeeksStreak,
+      total: habit.totalSetAside,
+      milestone: afterMile && (!beforeMile || afterMile > beforeMile) ? afterMile : null,
+    });
+
     setStage('result');
     setCalculating(false);
     haptics.success(); // the "set aside" moment (PRD §8.3)
@@ -74,24 +131,26 @@ export function AddIncomeSheet() {
       note: note.trim() || undefined,
       tax_year: DEFAULT_TAX_YEAR,
     });
-    router.back();
+    router.navigate('/');
   }
 
   function addAnother() {
-    setAmount(0);
+    setAmountText('');
     setNote('');
     setShowNote(false);
     setShowBreakdown(false);
+    setHabitFeedback(null);
     setStage('input');
   }
 
   if (stage === 'result') {
     return (
-      <Screen edges={['top', 'bottom']}>
+      <Screen edges={['top']}>
         <SetAsideResult
           amount={amount}
           setAside={setAside}
           delta={delta}
+          habit={habitFeedback}
           showBreakdown={showBreakdown}
           onToggleBreakdown={() => setShowBreakdown((v) => !v)}
           onAddAnother={addAnother}
@@ -102,25 +161,17 @@ export function AddIncomeSheet() {
   }
 
   return (
-    <Screen edges={['top', 'bottom']}>
+    <Screen edges={['top']}>
       <View style={styles.header}>
         <ThemedText variant="screenTitle">Add income</ThemedText>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          onPress={() => router.back()}>
-          <IconSymbol name="xmark.circle.fill" color={theme.textTertiary} size={28} />
-        </Pressable>
       </View>
 
       <View style={styles.amountWrap}>
-        <ThemedText variant="heroNumber" color="textSecondary">
-          $
-        </ThemedText>
+        <ThemedText style={[styles.currency, { color: theme.textSecondary }]}>$</ThemedText>
         <TextInput
-          keyboardType="number-pad"
-          value={amount > 0 ? String(amount) : ''}
-          onChangeText={(t) => setAmount(Number(t.replace(/[^0-9]/g, '')) || 0)}
+          keyboardType="decimal-pad"
+          value={amountText}
+          onChangeText={(t) => setAmountText(sanitizeAmount(t))}
           placeholder="0"
           placeholderTextColor={theme.textTertiary}
           style={[styles.amountInput, { color: theme.textPrimary }]}
@@ -158,7 +209,7 @@ export function AddIncomeSheet() {
         )}
       </View>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 72 }]}>
         <Button
           title="Calculate"
           onPress={calculate}
@@ -174,6 +225,7 @@ function SetAsideResult({
   amount,
   setAside,
   delta,
+  habit,
   showBreakdown,
   onToggleBreakdown,
   onAddAnother,
@@ -182,13 +234,19 @@ function SetAsideResult({
   amount: number;
   setAside: number;
   delta: Delta;
+  habit: HabitFeedback | null;
   showBreakdown: boolean;
   onToggleBreakdown: () => void;
   onAddAnother: () => void;
   onDone: () => void;
 }) {
   const theme = useTheme();
-  const animated = useCountUp(setAside);
+  const insets = useSafeAreaInsets();
+  const animated = useCountUp(setAside, 800);
+
+  useEffect(() => {
+    if (habit?.milestone) haptics.light();
+  }, [habit?.milestone]);
 
   return (
     <View style={styles.resultRoot}>
@@ -196,11 +254,14 @@ function SetAsideResult({
         <ThemedText variant="sectionHeader" color="textSecondary">
           Set aside
         </ThemedText>
-        <Animated.View entering={ZoomIn.springify().damping(12).mass(0.6)}>
-          <ThemedText style={[styles.setAsideHero, { color: theme.accent }]}>
-            {formatUSD(animated)}
-          </ThemedText>
-        </Animated.View>
+        <View style={styles.heroWrap}>
+          <View style={[styles.halo, { backgroundColor: theme.accent }]} pointerEvents="none" />
+          <Animated.View entering={ZoomIn.springify().damping(12).mass(0.6)}>
+            <ThemedText style={[styles.setAsideHero, { color: theme.accent }]}>
+              {formatUSD(animated)}
+            </ThemedText>
+          </Animated.View>
+        </View>
         <ThemedText variant="body" color="textSecondary">
           from this {formatUSD(amount)} payment
         </ThemedText>
@@ -213,6 +274,26 @@ function SetAsideResult({
             That keeps you covered for taxes
           </ThemedText>
         </Animated.View>
+
+        {habit && (
+          <Animated.View
+            entering={FadeInDown.delay(450).springify().damping(18)}
+            style={styles.habitRow}>
+            {habit.milestone ? (
+              <>
+                <IconSymbol name="checkmark.seal.fill" color={theme.accent} size={16} />
+                <ThemedText variant="secondary" color="accent">
+                  {formatUSD(habit.milestone)} set aside this year
+                </ThemedText>
+              </>
+            ) : (
+              <ThemedText variant="secondary" color="textTertiary">
+                {formatUSD(habit.total)} set aside this year
+                {habit.streak >= 2 ? ` · ${habit.streak} weeks covered` : ''}
+              </ThemedText>
+            )}
+          </Animated.View>
+        )}
 
         <Pressable
           onPress={onToggleBreakdown}
@@ -237,7 +318,7 @@ function SetAsideResult({
         )}
       </View>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 72 }]}>
         <Button title="Done" onPress={onDone} />
         <Button title="Add another" variant="ghost" onPress={onAddAnother} />
       </View>
@@ -270,7 +351,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs,
   },
-  amountInput: { fontSize: 56, fontWeight: '700', minWidth: 120, textAlign: 'left' },
+  currency: { fontSize: 40, fontWeight: '600', lineHeight: 60 },
+  amountInput: { fontSize: 56, fontWeight: '700', lineHeight: 64, minWidth: 24, textAlign: 'center' },
   meta: { gap: Spacing.sm, paddingBottom: Spacing.lg },
   dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   noteInput: {
@@ -283,6 +365,8 @@ const styles = StyleSheet.create({
   footer: { gap: Spacing.sm, paddingBottom: Spacing.md },
   resultRoot: { flex: 1 },
   resultCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+  heroWrap: { alignItems: 'center', justifyContent: 'center' },
+  halo: { position: 'absolute', width: 240, height: 240, borderRadius: 120, opacity: 0.07 },
   setAsideHero: { fontSize: 56, fontWeight: '700', fontVariant: ['tabular-nums'] },
   coveredRow: {
     flexDirection: 'row',
@@ -290,6 +374,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginTop: Spacing.md,
   },
+  habitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+
   explainLink: {
     flexDirection: 'row',
     alignItems: 'center',
