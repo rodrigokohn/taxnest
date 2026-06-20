@@ -12,6 +12,20 @@ import { Radius, Spacing, useTheme } from '@/design';
 import { stateName } from '@/lib/us-states';
 import { useProfileStore } from '@/store';
 
+/** Keep only digits and a single decimal point with up to 2 places. */
+function sanitizeAmount(t: string): string {
+  const cleaned = t.replace(/[^0-9.]/g, '');
+  const dot = cleaned.indexOf('.');
+  if (dot === -1) return cleaned;
+  return (
+    cleaned.slice(0, dot + 1) +
+    cleaned
+      .slice(dot + 1)
+      .replace(/\./g, '')
+      .slice(0, 2)
+  );
+}
+
 /** Edit tax profile (PRD §8.9). Saving recomputes every projection. */
 export default function EditProfileScreen() {
   const theme = useTheme();
@@ -109,6 +123,7 @@ function MoneyField({
   label?: string;
 }) {
   const theme = useTheme();
+  const [text, setText] = useState(value > 0 ? String(value) : '');
   return (
     <View style={styles.moneyField}>
       {label && (
@@ -116,14 +131,19 @@ function MoneyField({
           {label}
         </ThemedText>
       )}
-      <View style={[styles.fieldBox, { borderColor: theme.border }]}>
+      <View
+        style={[styles.fieldBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <ThemedText variant="body" color="textSecondary">
           $
         </ThemedText>
         <TextInput
-          keyboardType="number-pad"
-          value={value > 0 ? String(value) : ''}
-          onChangeText={(t) => onChange(Number(t.replace(/[^0-9]/g, '')) || 0)}
+          keyboardType="decimal-pad"
+          value={text}
+          onChangeText={(t) => {
+            const clean = sanitizeAmount(t);
+            setText(clean);
+            onChange(parseFloat(clean) || 0);
+          }}
           placeholder="0"
           placeholderTextColor={theme.textTertiary}
           style={[styles.fieldInput, { color: theme.textPrimary }]}
