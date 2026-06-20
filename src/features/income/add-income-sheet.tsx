@@ -352,7 +352,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   currency: { fontSize: 40, fontWeight: '600', lineHeight: 60 },
-  amountInput: { fontSize: 56, fontWeight: '700', lineHeight: 64, minWidth: 24, textAlign: 'center' },
+  amountInput: {
+    fontSize: 56,
+    fontWeight: '700',
+    lineHeight: 64,
+    minWidth: 24,
+    textAlign: 'center',
+  },
   meta: { gap: Spacing.sm, paddingBottom: Spacing.lg },
   dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   noteInput: {
@@ -367,7 +373,7 @@ const styles = StyleSheet.create({
   resultCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
   heroWrap: { alignItems: 'center', justifyContent: 'center' },
   halo: { position: 'absolute', width: 240, height: 240, borderRadius: 120, opacity: 0.07 },
-  setAsideHero: { fontSize: 56, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  setAsideHero: { fontSize: 56, lineHeight: 64, fontWeight: '700', fontVariant: ['tabular-nums'] },
   coveredRow: {
     flexDirection: 'row',
     alignItems: 'center',
