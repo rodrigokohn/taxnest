@@ -11,7 +11,7 @@ import Animated, {
 
 import { IconSymbol, type IconSymbolName } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
-import { isProNow, useEntitlementStore, useIsPro, type SubStatus } from '@/config/gating';
+import { useEntitlementStore, useIsPro, type SubStatus } from '@/config/gating';
 import { PRIVACY_URL, TERMS_URL } from '@/config/legal';
 import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { FILING_STATUS_LABELS } from '@/domain';
@@ -24,7 +24,6 @@ import {
   requestNotificationPermission,
   scheduleQuarterlyReminders,
 } from '@/services/notifications';
-import { restorePurchases } from '@/services/purchases';
 import { useAuthStore, useProfileStore, useTaxConfigStore } from '@/store';
 import { useThemeStore, type ThemePreference } from '@/store/theme-store';
 
@@ -60,21 +59,6 @@ export default function SettingsScreen() {
     Linking.openURL('itms-apps://apps.apple.com/account/subscriptions').catch(() => {
       Linking.openURL('https://apps.apple.com/account/subscriptions');
     });
-  }
-
-  async function restore() {
-    try {
-      const info = await restorePurchases();
-      if (info) useEntitlementStore.getState().applyCustomerInfo(info);
-      Alert.alert(
-        isProNow() ? 'Restored' : 'Nothing to restore',
-        isProNow()
-          ? 'Your subscription is active.'
-          : 'No active subscription was found for this Apple ID.',
-      );
-    } catch {
-      Alert.alert('Restore failed', 'Please try again.');
-    }
   }
 
   const [remindersOn, setRemindersOn] = useState(false);
@@ -147,7 +131,6 @@ export default function SettingsScreen() {
           accessory="chevron"
           onPress={manageSubscription}
         />
-        <Row icon="arrow.clockwise" label="Restore purchases" onPress={restore} />
       </Section>
 
       <Section title="About">
