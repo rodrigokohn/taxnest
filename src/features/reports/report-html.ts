@@ -1,3 +1,4 @@
+import { DISCLAIMER } from '@/config/estimate-scope';
 import { type DeductionCategory, FILING_STATUS_LABELS } from '@/domain';
 import { type ReportData } from '@/features/reports/report-data';
 import { formatUSD } from '@/lib/money';
@@ -12,10 +13,6 @@ const CATEGORY_LABELS: Record<DeductionCategory, string> = {
   supplies: 'Supplies',
   other: 'Other',
 };
-
-const DISCLAIMER =
-  'Taxnest provides estimates for planning purposes only. It is not tax, legal, or ' +
-  'financial advice and does not replace a licensed tax professional.';
 
 function row(label: string, value: string, strong = false): string {
   const weight = strong ? 'font-weight:600;' : '';

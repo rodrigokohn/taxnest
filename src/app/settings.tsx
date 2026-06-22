@@ -12,6 +12,7 @@ import Animated, {
 import { IconSymbol, type IconSymbolName } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { useEntitlementStore, useIsPro, type SubStatus } from '@/config/gating';
+import { DISCLAIMER } from '@/config/estimate-scope';
 import { PRIVACY_URL, TERMS_URL } from '@/config/legal';
 import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { FILING_STATUS_LABELS } from '@/domain';
@@ -29,10 +30,6 @@ import { useThemeStore, type ThemePreference } from '@/store/theme-store';
 
 const ROW_ICON = 30;
 const ROW_TEXT_INSET = Spacing.lg + ROW_ICON + Spacing.md;
-
-const DISCLAIMER =
-  'Taxnest provides estimates for planning purposes only. It is not tax, legal, or ' +
-  'financial advice and does not replace a licensed tax professional.';
 
 /** Settings (PRD §8.9). */
 export default function SettingsScreen() {

@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AnimatedEntrance } from '@/components/animated-entrance';
 import { Card } from '@/components/card';
+import { EstimateScopeNote } from '@/components/estimate-scope-note';
 import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
 import { StateCoverageNotice } from '@/components/state-coverage-notice';
@@ -169,6 +170,8 @@ export default function HomeScreen() {
             onPress={() => router.navigate('/(tabs)/more')}
           />
         </AnimatedEntrance>
+
+        <EstimateScopeNote />
       </ScrollView>
     </Screen>
   );
