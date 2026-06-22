@@ -378,17 +378,12 @@ function GlowIcon({ icon }: { icon: IconSymbolName }) {
   );
 }
 
-/** The Taxnest brand mark (nest + coin) on a glowing green disc. */
+/** The Taxnest app icon as a glowing rounded tile. */
 function BrandIcon() {
   const theme = useTheme();
   return (
-    <View
-      style={[styles.brandDisc, { backgroundColor: theme.primary, shadowColor: theme.primary }]}>
-      <Image
-        source={require('../../../assets/images/icon-nest.png')}
-        style={styles.brandIconImg}
-        resizeMode="contain"
-      />
+    <View style={[styles.brandTileWrap, { shadowColor: theme.primary }]}>
+      <Image source={require('../../../assets/images/icon-light.png')} style={styles.brandTile} />
     </View>
   );
 }
@@ -702,19 +697,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
-  brandDisc: {
-    width: 116,
-    height: 116,
-    borderRadius: Radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
+  brandTileWrap: {
+    borderRadius: 26,
     marginBottom: Spacing.md,
     shadowOpacity: 0.3,
-    shadowRadius: 20,
+    shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
-  brandIconImg: { width: 96, height: 96 },
+  brandTile: { width: 104, height: 104, borderRadius: 26 },
   cta: { alignSelf: 'stretch', marginTop: Spacing.lg },
   qRoot: { flex: 1, gap: Spacing.sm },
   qTitle: { marginBottom: Spacing.xs, fontSize: 26, lineHeight: 32 },

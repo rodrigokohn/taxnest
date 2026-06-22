@@ -1,6 +1,6 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useState } from 'react';
-import { Alert, Platform, StyleSheet, View } from 'react-native';
+import { Alert, Image, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
@@ -45,7 +45,7 @@ export default function SignInScreen() {
       <SafeAreaView edges={['top', 'bottom']} style={styles.safe}>
         <View style={styles.hero}>
           <AnimatedEntrance index={0}>
-            <GlowIcon icon="leaf.fill" />
+            <BrandTile />
           </AnimatedEntrance>
           <AnimatedEntrance index={1}>
             <ThemedText variant="screenTitle" style={styles.title}>
@@ -117,12 +117,11 @@ function GlowBg({ color }: { color: string }) {
   );
 }
 
-function GlowIcon({ icon }: { icon: IconSymbolName }) {
+function BrandTile() {
   const theme = useTheme();
   return (
-    <View
-      style={[styles.glowIcon, { backgroundColor: theme.primaryTint, shadowColor: theme.primary }]}>
-      <IconSymbol name={icon} color={theme.primary} size={40} />
+    <View style={[styles.brandTileWrap, { shadowColor: theme.primary }]}>
+      <Image source={require('../../assets/images/icon-light.png')} style={styles.brandTile} />
     </View>
   );
 }
@@ -131,18 +130,15 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: ScreenPadding },
   hero: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
-  glowIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: Radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
+  brandTileWrap: {
+    borderRadius: 24,
     marginBottom: Spacing.sm,
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
+    shadowOpacity: 0.28,
+    shadowRadius: 22,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
+  brandTile: { width: 96, height: 96, borderRadius: 24 },
   title: { textAlign: 'center', fontSize: 26, lineHeight: 32 },
   subtitle: { textAlign: 'center', maxWidth: 300 },
   valueList: {
