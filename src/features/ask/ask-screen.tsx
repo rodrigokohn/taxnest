@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/components/card';
 import { IconSymbol } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
+import { TypewriterText } from '@/components/typewriter-text';
 import { Radius, Spacing, useTheme } from '@/design';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { askTaxQuestion } from '@/services/ai';
@@ -38,6 +39,7 @@ export function AskScreen() {
   const [answer, setAnswer] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   async function ask(q: string) {
     const trimmed = q.trim();
@@ -75,10 +77,12 @@ export function AskScreen() {
         { paddingBottom: kbHeight > 0 ? kbHeight + Spacing.sm : insets.bottom + Spacing.md },
       ]}>
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
         {idle ? (
           <View style={styles.intro}>
             <View style={[styles.introIcon, { backgroundColor: theme.primaryTint }]}>
@@ -144,9 +148,7 @@ export function AskScreen() {
                       Assistant
                     </ThemedText>
                   </View>
-                  <ThemedText variant="body" style={styles.answerText}>
-                    {answer}
-                  </ThemedText>
+                  <TypewriterText text={answer} variant="body" style={styles.answerText} />
                 </Card>
               </Animated.View>
             )}
@@ -166,12 +168,13 @@ export function AskScreen() {
         <TextInput
           value={question}
           onChangeText={setQuestion}
-          placeholder="Ask a question…"
+          placeholder="Ask anything about your taxes…"
           placeholderTextColor={theme.textTertiary}
           style={[styles.input, { color: theme.textPrimary }]}
           editable={!loading}
           onSubmitEditing={() => ask(question)}
           returnKeyType="send"
+          multiline={false}
         />
         <Pressable
           onPress={() => ask(question)}
@@ -253,7 +256,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.xl,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    minHeight: 52,
   },
-  input: { flex: 1, fontSize: 16, paddingVertical: Spacing.sm },
+  input: { flex: 1, fontSize: 16, paddingVertical: Spacing.sm, lineHeight: 20 },
 });

@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { Children, Fragment, type ReactNode, useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { IconSymbol, type IconSymbolName } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
@@ -323,6 +324,9 @@ function Row({
   );
 }
 
+const SEG_PAD = 3;
+const SEG_GAP = 3;
+
 function Segmented({
   value,
   onChange,
@@ -333,8 +337,37 @@ function Segmented({
   options: { value: ThemePreference; label: string }[];
 }) {
   const theme = useTheme();
+  const [width, setWidth] = useState(0);
+  const n = options.length;
+  const index = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  );
+  const segWidth = width > 0 ? (width - SEG_PAD * 2 - SEG_GAP * (n - 1)) / n : 0;
+
+  const tx = useSharedValue(0);
+  useEffect(() => {
+    tx.value = withSpring(SEG_PAD + index * (segWidth + SEG_GAP), {
+      damping: 18,
+      stiffness: 220,
+    });
+  }, [index, segWidth, tx]);
+  const indicatorStyle = useAnimatedStyle(() => ({ transform: [{ translateX: tx.value }] }));
+
   return (
-    <View style={[styles.segmented, { backgroundColor: theme.surface }]}>
+    <View
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      style={[styles.segmented, { backgroundColor: theme.surface }]}>
+      {segWidth > 0 && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.segIndicator,
+            { width: segWidth, backgroundColor: theme.primary },
+            indicatorStyle,
+          ]}
+        />
+      )}
       {options.map((opt) => {
         const active = opt.value === value;
         return (
@@ -343,10 +376,13 @@ function Segmented({
             onPress={() => onChange(opt.value)}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
-            style={[styles.segment, active && { backgroundColor: theme.primary }]}>
+            style={styles.segment}>
             <ThemedText
               variant="secondary"
-              style={{ color: active ? '#FFFFFF' : theme.textSecondary }}>
+              style={{
+                color: active ? '#FFFFFF' : theme.textSecondary,
+                fontWeight: active ? '600' : '400',
+              }}>
               {opt.label}
             </ThemedText>
           </Pressable>
@@ -398,6 +434,19 @@ const styles = StyleSheet.create({
   rowLabel: { flex: 1 },
   separator: { height: StyleSheet.hairlineWidth, marginLeft: ROW_TEXT_INSET },
   disclaimer: { paddingHorizontal: Spacing.xs, lineHeight: 18, textAlign: 'center' },
-  segmented: { flexDirection: 'row', borderRadius: Radius.md, padding: 3, gap: 3 },
+  segmented: {
+    flexDirection: 'row',
+    borderRadius: Radius.md,
+    padding: SEG_PAD,
+    gap: SEG_GAP,
+    position: 'relative',
+  },
+  segIndicator: {
+    position: 'absolute',
+    top: SEG_PAD,
+    bottom: SEG_PAD,
+    left: 0,
+    borderRadius: Radius.sm,
+  },
   segment: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radius.sm, alignItems: 'center' },
 });
