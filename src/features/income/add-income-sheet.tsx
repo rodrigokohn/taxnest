@@ -14,6 +14,7 @@ import { deductionRepo, incomeSourceRepo } from '@/data';
 import { Radius, Spacing, useTheme } from '@/design';
 import { highestMilestoneReached } from '@/features/dashboard/milestones';
 import { computeHabitData } from '@/features/dashboard/use-habit-data';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { formatUSD } from '@/lib/money';
 import { useCountUp } from '@/lib/use-count-up';
 import { haptics } from '@/services/haptics';
@@ -42,6 +43,7 @@ export function AddIncomeSheet() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const kbHeight = useKeyboardHeight();
 
   const [stage, setStage] = useState<'input' | 'result'>('input');
   const [amountText, setAmountText] = useState('');
@@ -209,7 +211,11 @@ export function AddIncomeSheet() {
         )}
       </View>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 72 }]}>
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: kbHeight > 0 ? kbHeight + Spacing.md : insets.bottom + 72 },
+        ]}>
         <Button
           title="Calculate"
           onPress={calculate}

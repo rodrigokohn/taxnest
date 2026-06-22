@@ -8,11 +8,13 @@ import {
   View,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card } from '@/components/card';
 import { IconSymbol } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, useTheme } from '@/design';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { askTaxQuestion } from '@/services/ai';
 import { usePaymentsStore, useProfileStore } from '@/store';
 
@@ -25,6 +27,8 @@ const SUGGESTED = [
 /** Assistant — freelance tax Q&A (PRD §8.8). Pointed questions, not a long chat. */
 export function AskScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const kbHeight = useKeyboardHeight();
   const profile = useProfileStore((s) => s.profile);
   const totalSetAside = usePaymentsStore((s) => s.totalSetAside);
   const totalIncome = usePaymentsStore((s) => s.totalIncome);
@@ -65,7 +69,11 @@ export function AskScreen() {
   const idle = !asked && !loading;
 
   return (
-    <View style={styles.root}>
+    <View
+      style={[
+        styles.root,
+        { paddingBottom: kbHeight > 0 ? kbHeight + Spacing.sm : insets.bottom + Spacing.md },
+      ]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
