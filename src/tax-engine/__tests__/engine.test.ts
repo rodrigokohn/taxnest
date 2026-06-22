@@ -174,9 +174,9 @@ describe('§6.8 case 6 — marginal set-aside crosses brackets', () => {
 });
 
 describe('state coverage — a state missing from the config must flag itself', () => {
-  // AZ is not in the curated seed; it must NOT silently report $0 as complete.
+  // OH is not in the curated seed yet; it must NOT silently report $0 as complete.
   const breakdown = computeAnnualTax(
-    { filing_status: 'single', state: 'AZ', net_profit: 60_000 },
+    { filing_status: 'single', state: 'OH', net_profit: 60_000 },
     CONFIG,
   );
 
@@ -188,6 +188,19 @@ describe('state coverage — a state missing from the config must flag itself', 
   it('still computes federal + SE so the estimate is partial, not zero', () => {
     expect(breakdown.federalIncomeTax).toBeGreaterThan(0);
     expect(breakdown.se.seTax).toBeGreaterThan(0);
+  });
+});
+
+describe('flat state — Arizona ($60k single)', () => {
+  const breakdown = computeAnnualTax(
+    { filing_status: 'single', state: 'AZ', net_profit: 60_000 },
+    CONFIG,
+  );
+
+  it('applies the 2.5% flat rate to AGI minus the standard deduction', () => {
+    // AGI 55,761.135 − $15,000 std = 40,761.135 × 0.025 = 1,019.03
+    expect(breakdown.stateSupported).toBe(true);
+    expect(breakdown.stateTax).toBeCloseTo(1_019.03, 2);
   });
 });
 

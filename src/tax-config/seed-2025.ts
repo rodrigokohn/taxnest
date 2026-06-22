@@ -115,11 +115,33 @@ export const SEED_TAX_CONFIG_2025 = {
     WA: { type: 'none' }, // capital gains only
     WY: { type: 'none' },
 
-    // Flat-rate states (starter set).
+    // Flat-rate states (2025, Tax Foundation). Single-filer standard deduction;
+    // where a state uses exemptions/credits instead, we use 0 (slightly
+    // over-estimates, the safe direction). Per-filing-status data is task #24.
+    AZ: { type: 'flat', rate: 0.025, standard_deduction: 15_000 },
+    CO: { type: 'flat', rate: 0.044, standard_deduction: 15_000 },
+    GA: { type: 'flat', rate: 0.0539, standard_deduction: 12_000 },
+    ID: { type: 'flat', rate: 0.05695, standard_deduction: 15_000 },
     IL: { type: 'flat', rate: 0.0495, standard_deduction: 0 },
+    IN: { type: 'flat', rate: 0.03, standard_deduction: 0 },
+    IA: { type: 'flat', rate: 0.038, standard_deduction: 0 },
+    KY: { type: 'flat', rate: 0.04, standard_deduction: 3_270 },
+    LA: { type: 'flat', rate: 0.03, standard_deduction: 12_500 },
+    MI: { type: 'flat', rate: 0.0425, standard_deduction: 0 },
+    NC: { type: 'flat', rate: 0.0425, standard_deduction: 12_750 },
     PA: { type: 'flat', rate: 0.0307, standard_deduction: 0 },
+    UT: { type: 'flat', rate: 0.0455, standard_deduction: 0 },
 
-    // Progressive states (starter set; single-filer approximation).
+    // Progressive states (single-filer approximation).
+    // Mississippi: 0% on the first $10k of taxable income, then a flat 4.4%.
+    MS: {
+      type: 'progressive',
+      standard_deduction: 2_300,
+      brackets: [
+        { lower: 0, upper: 10_000, rate: 0 },
+        { lower: 10_000, upper: TOP, rate: 0.044 },
+      ],
+    },
     CA: {
       type: 'progressive',
       standard_deduction: 5_540,
