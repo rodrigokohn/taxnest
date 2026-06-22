@@ -132,21 +132,30 @@ export function OnboardingWizard() {
   }, [draft, config]);
 
   async function finish() {
-    if (!draft.filing_status || !draft.state) return;
     setSaving(true);
     const now = new Date().toISOString();
+    // filing_status/state are collected on pages 2–3; fall back to sane defaults
+    // so "See my plan" can never dead-end (the user can refine them in Settings).
     const profile: UserProfile = {
       id: newId(),
-      filing_status: draft.filing_status,
-      state: draft.state,
+      filing_status: draft.filing_status ?? 'single',
+      state: draft.state ?? 'CA',
       estimated_annual_income: draft.estimated_annual_income,
       prior_year_tax: draft.filed_last_year ? draft.prior_year_tax : undefined,
       prior_year_agi: draft.filed_last_year ? draft.prior_year_agi : undefined,
       created_at: now,
       updated_at: now,
     };
-    await saveProfile(profile);
-    await incomeSourceRepo.ensureDefault();
+    try {
+      await saveProfile(profile);
+    } catch (e) {
+      console.warn('[onboarding] could not save profile', e);
+      setSaving(false);
+      return;
+    }
+    // The default income source isn't needed until the first payment — best-effort,
+    // so a failure here can never block the user from entering the app.
+    void incomeSourceRepo.ensureDefault().catch(() => {});
     router.replace('/');
   }
 
@@ -367,18 +376,9 @@ function BrandIcon() {
   const theme = useTheme();
   return (
     <View
-      style={[
-        styles.glowIcon,
-        {
-          backgroundColor: theme.primary,
-          shadowColor: theme.primary,
-          shadowOpacity: 0.5,
-          shadowRadius: 24,
-          shadowOffset: { width: 0, height: 0 },
-        },
-      ]}>
+      style={[styles.brandDisc, { backgroundColor: theme.primary, shadowColor: theme.primary }]}>
       <Image
-        source={require('../../../assets/images/icon-dark.png')}
+        source={require('../../../assets/images/icon-nest.png')}
         style={styles.brandIconImg}
         resizeMode="contain"
       />
@@ -692,7 +692,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
-  brandIconImg: { width: 80, height: 80 },
+  brandDisc: {
+    width: 116,
+    height: 116,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  brandIconImg: { width: 96, height: 96 },
   cta: { alignSelf: 'stretch', marginTop: Spacing.lg },
   qRoot: { flex: 1, gap: Spacing.sm },
   qTitle: { marginBottom: Spacing.xs, fontSize: 26, lineHeight: 32 },
