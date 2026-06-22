@@ -359,25 +359,6 @@ function GlowBg({ color }: { color: string }) {
   );
 }
 
-function GlowIcon({ icon }: { icon: IconSymbolName }) {
-  const theme = useTheme();
-  return (
-    <View
-      style={[
-        styles.glowIcon,
-        {
-          backgroundColor: theme.primaryTint,
-          shadowColor: theme.primary,
-          shadowOpacity: 0.5,
-          shadowRadius: 24,
-          shadowOffset: { width: 0, height: 0 },
-        },
-      ]}>
-      <IconSymbol name={icon} color={theme.primary} size={40} />
-    </View>
-  );
-}
-
 /** The Taxnest app icon as a glowing rounded tile. */
 function BrandIcon() {
   const theme = useTheme();
@@ -689,14 +670,6 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
   center: { textAlign: 'center' },
   headline: { fontSize: 30, lineHeight: 38 },
-  glowIcon: {
-    width: 84,
-    height: 84,
-    borderRadius: Radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
   brandTileWrap: {
     borderRadius: 26,
     marginBottom: Spacing.md,

@@ -48,7 +48,7 @@ export default function TaxesScreen() {
     refresh();
   }, [refresh]);
 
-  const deadlines = config?.quarterly_deadlines ?? [];
+  const deadlines = useMemo(() => config?.quarterly_deadlines ?? [], [config]);
   const suggested = dashboard?.suggestedQuarterly ?? 0;
   const suggestedValue = useCountUp(suggested);
 
