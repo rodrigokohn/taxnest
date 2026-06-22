@@ -1,6 +1,15 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -148,166 +157,170 @@ export function OnboardingWizard() {
     <View style={[styles.root, { backgroundColor: theme.background }]}>
       <GlowBg color={glow} />
       <SafeAreaView edges={['top', 'bottom']} style={styles.safe}>
-        {showProgress && (
-          <View style={styles.progressRow}>
-            <Pressable
-              onPress={goBack}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Back">
-              <IconSymbol name="chevron.left" color={theme.textSecondary} size={22} />
-            </Pressable>
-            <ProgressBar value={(page - 1) / 7} />
-          </View>
-        )}
-
-        <Animated.View key={page} entering={FadeIn.duration(240)} style={styles.body}>
-          {page === 0 && (
-            <View style={styles.centered}>
-              <GlowIcon icon="leaf.fill" />
-              <ThemedText variant="screenTitle" style={[styles.center, styles.headline]}>
-                Let&apos;s build your tax plan
-              </ThemedText>
-              <ThemedText variant="body" color="textSecondary" style={styles.center}>
-                A few quick questions and we&apos;ll show you exactly how much to set aside from
-                every payment.
-              </ThemedText>
-              <Button title="Start" onPress={goNext} style={styles.cta} />
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          {showProgress && (
+            <View style={styles.progressRow}>
+              <Pressable
+                onPress={goBack}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Back">
+                <IconSymbol name="chevron.left" color={theme.textSecondary} size={22} />
+              </Pressable>
+              <ProgressBar value={(page - 1) / 7} />
             </View>
           )}
 
-          {page === 1 && (
-            <Question title="What kind of work do you do?" subtitle="So we can tailor your plan.">
-              {WORK_TYPES.map((c, i) => (
-                <QuizOption
-                  key={c.id}
-                  choice={c}
-                  index={i}
-                  selected={draft.workType === c.id}
-                  onPress={() => pick({ workType: c.id })}
-                />
-              ))}
-            </Question>
-          )}
-
-          {page === 2 && (
-            <Question title="How do you file your taxes?">
-              {FILING_STATUSES.map((fs, i) => (
-                <QuizOption
-                  key={fs}
-                  choice={{ id: fs, label: FILING_STATUS_LABELS[fs], icon: FILING_ICON }}
-                  index={i}
-                  selected={draft.filing_status === fs}
-                  onPress={() => pick({ filing_status: fs })}
-                />
-              ))}
-            </Question>
-          )}
-
-          {page === 3 && (
-            <View style={styles.qRoot}>
-              <ThemedText variant="screenTitle" style={styles.qTitle}>
-                Which state do you live in?
-              </ThemedText>
-              <View style={styles.pickerWrap}>
-                <StatePicker selected={draft.state} onSelect={(code) => pick({ state: code })} />
+          <Animated.View key={page} entering={FadeIn.duration(240)} style={styles.body}>
+            {page === 0 && (
+              <View style={styles.centered}>
+                <BrandIcon />
+                <ThemedText variant="screenTitle" style={[styles.center, styles.headline]}>
+                  Let&apos;s build your tax plan
+                </ThemedText>
+                <ThemedText variant="body" color="textSecondary" style={styles.center}>
+                  A few quick questions and we&apos;ll show you exactly how much to set aside from
+                  every payment.
+                </ThemedText>
+                <Button title="Start" onPress={goNext} style={styles.cta} />
               </View>
-            </View>
-          )}
+            )}
 
-          {page === 4 && (
-            <View style={styles.qRoot}>
-              <ThemedText variant="screenTitle" style={styles.qTitle}>
-                How much will you make freelancing this year?
-              </ThemedText>
-              <ThemedText variant="body" color="textSecondary" style={styles.qSubtitle}>
-                A rough number is fine — you can change it anytime.
-              </ThemedText>
-              <View style={styles.moneyArea}>
-                <MoneyInput
-                  value={draft.estimated_annual_income}
-                  onChange={(v) => set({ estimated_annual_income: v })}
-                />
+            {page === 1 && (
+              <Question title="What kind of work do you do?" subtitle="So we can tailor your plan.">
+                {WORK_TYPES.map((c, i) => (
+                  <QuizOption
+                    key={c.id}
+                    choice={c}
+                    index={i}
+                    selected={draft.workType === c.id}
+                    onPress={() => pick({ workType: c.id })}
+                  />
+                ))}
+              </Question>
+            )}
+
+            {page === 2 && (
+              <Question title="How do you file your taxes?">
+                {FILING_STATUSES.map((fs, i) => (
+                  <QuizOption
+                    key={fs}
+                    choice={{ id: fs, label: FILING_STATUS_LABELS[fs], icon: FILING_ICON }}
+                    index={i}
+                    selected={draft.filing_status === fs}
+                    onPress={() => pick({ filing_status: fs })}
+                  />
+                ))}
+              </Question>
+            )}
+
+            {page === 3 && (
+              <View style={styles.qRoot}>
+                <ThemedText variant="screenTitle" style={styles.qTitle}>
+                  Which state do you live in?
+                </ThemedText>
+                <View style={styles.pickerWrap}>
+                  <StatePicker selected={draft.state} onSelect={(code) => pick({ state: code })} />
+                </View>
               </View>
-              <Button
-                title="Continue"
-                disabled={draft.estimated_annual_income <= 0}
-                onPress={goNext}
-              />
-            </View>
-          )}
+            )}
 
-          {page === 5 && (
-            <Question
-              title="Did you file taxes as a freelancer last year?"
-              subtitle="Optional — it lets us protect you from penalties (safe harbor).">
-              <QuizOption
-                choice={{ id: 'yes', label: 'Yes', icon: 'checkmark.circle.fill' }}
-                index={0}
-                selected={draft.filed_last_year === true}
-                onPress={() => {
-                  haptics.light();
-                  set({ filed_last_year: true });
-                }}
-              />
-              <QuizOption
-                choice={{ id: 'no', label: 'No / not sure', icon: 'xmark.circle.fill' }}
-                index={1}
-                selected={draft.filed_last_year === false}
-                onPress={() => pick({ filed_last_year: false })}
-              />
-              {draft.filed_last_year === true && (
-                <Animated.View entering={FadeInDown.duration(220)} style={styles.priorFields}>
-                  <LabeledMoney
-                    label="Total tax you paid last year"
-                    value={draft.prior_year_tax ?? 0}
-                    onChange={(v) => set({ prior_year_tax: v })}
+            {page === 4 && (
+              <Pressable style={styles.qRoot} onPress={Keyboard.dismiss} accessible={false}>
+                <ThemedText variant="screenTitle" style={styles.qTitle}>
+                  How much will you make freelancing this year?
+                </ThemedText>
+                <ThemedText variant="body" color="textSecondary" style={styles.qSubtitle}>
+                  A rough number is fine — you can change it anytime.
+                </ThemedText>
+                <View style={styles.moneyArea}>
+                  <MoneyInput
+                    value={draft.estimated_annual_income}
+                    onChange={(v) => set({ estimated_annual_income: v })}
                   />
-                  <LabeledMoney
-                    label="Your AGI last year"
-                    value={draft.prior_year_agi ?? 0}
-                    onChange={(v) => set({ prior_year_agi: v })}
+                </View>
+                <Button
+                  title="Continue"
+                  disabled={draft.estimated_annual_income <= 0}
+                  onPress={goNext}
+                />
+              </Pressable>
+            )}
+
+            {page === 5 && (
+              <Question
+                title="Did you file taxes as a freelancer last year?"
+                subtitle="Optional — it lets us protect you from penalties (safe harbor).">
+                <QuizOption
+                  choice={{ id: 'yes', label: 'Yes', icon: 'checkmark.circle.fill' }}
+                  index={0}
+                  selected={draft.filed_last_year === true}
+                  onPress={() => {
+                    haptics.light();
+                    set({ filed_last_year: true });
+                  }}
+                />
+                <QuizOption
+                  choice={{ id: 'no', label: 'No / not sure', icon: 'xmark.circle.fill' }}
+                  index={1}
+                  selected={draft.filed_last_year === false}
+                  onPress={() => pick({ filed_last_year: false })}
+                />
+                {draft.filed_last_year === true && (
+                  <Animated.View entering={FadeInDown.duration(220)} style={styles.priorFields}>
+                    <LabeledMoney
+                      label="Total tax you paid last year"
+                      value={draft.prior_year_tax ?? 0}
+                      onChange={(v) => set({ prior_year_tax: v })}
+                    />
+                    <LabeledMoney
+                      label="Your AGI last year"
+                      value={draft.prior_year_agi ?? 0}
+                      onChange={(v) => set({ prior_year_agi: v })}
+                    />
+                    <Button title="Continue" onPress={goNext} />
+                  </Animated.View>
+                )}
+              </Question>
+            )}
+
+            {page === 6 && (
+              <Question title="How do you handle taxes right now?">
+                {METHODS.map((c, i) => (
+                  <QuizOption
+                    key={c.id}
+                    choice={c}
+                    index={i}
+                    selected={draft.method === c.id}
+                    onPress={() => pick({ method: c.id })}
                   />
-                  <Button title="Continue" onPress={goNext} />
-                </Animated.View>
-              )}
-            </Question>
-          )}
+                ))}
+              </Question>
+            )}
 
-          {page === 6 && (
-            <Question title="How do you handle taxes right now?">
-              {METHODS.map((c, i) => (
-                <QuizOption
-                  key={c.id}
-                  choice={c}
-                  index={i}
-                  selected={draft.method === c.id}
-                  onPress={() => pick({ method: c.id })}
-                />
-              ))}
-            </Question>
-          )}
+            {page === 7 && (
+              <Question title="Ever been surprised by a tax bill?">
+                {SURPRISED.map((c, i) => (
+                  <QuizOption
+                    key={c.id}
+                    choice={c}
+                    index={i}
+                    selected={draft.surprised === c.id}
+                    onPress={() => pick({ surprised: c.id })}
+                  />
+                ))}
+              </Question>
+            )}
 
-          {page === 7 && (
-            <Question title="Ever been surprised by a tax bill?">
-              {SURPRISED.map((c, i) => (
-                <QuizOption
-                  key={c.id}
-                  choice={c}
-                  index={i}
-                  selected={draft.surprised === c.id}
-                  onPress={() => pick({ surprised: c.id })}
-                />
-              ))}
-            </Question>
-          )}
+            {page === 8 && <BuildingPlan onDone={goNext} />}
 
-          {page === 8 && <BuildingPlan onDone={goNext} />}
-
-          {page === 9 && (
-            <Reveal rate={reveal.rate} tax={reveal.tax} loading={saving} onContinue={finish} />
-          )}
-        </Animated.View>
+            {page === 9 && (
+              <Reveal rate={reveal.rate} tax={reveal.tax} loading={saving} onContinue={finish} />
+            )}
+          </Animated.View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );
@@ -345,6 +358,30 @@ function GlowIcon({ icon }: { icon: IconSymbolName }) {
         },
       ]}>
       <IconSymbol name={icon} color={theme.primary} size={40} />
+    </View>
+  );
+}
+
+/** The Taxnest brand mark (nest + coin) on a glowing green disc. */
+function BrandIcon() {
+  const theme = useTheme();
+  return (
+    <View
+      style={[
+        styles.glowIcon,
+        {
+          backgroundColor: theme.primary,
+          shadowColor: theme.primary,
+          shadowOpacity: 0.5,
+          shadowRadius: 24,
+          shadowOffset: { width: 0, height: 0 },
+        },
+      ]}>
+      <Image
+        source={require('../../../assets/images/icon-dark.png')}
+        style={styles.brandIconImg}
+        resizeMode="contain"
+      />
     </View>
   );
 }
@@ -627,6 +664,7 @@ function Reveal({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  flex: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: ScreenPadding },
   body: { flex: 1, paddingTop: Spacing.lg },
   progressRow: {
@@ -654,6 +692,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
+  brandIconImg: { width: 80, height: 80 },
   cta: { alignSelf: 'stretch', marginTop: Spacing.lg },
   qRoot: { flex: 1, gap: Spacing.sm },
   qTitle: { marginBottom: Spacing.xs, fontSize: 26, lineHeight: 32 },
