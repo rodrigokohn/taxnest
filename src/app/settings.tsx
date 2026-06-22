@@ -2,7 +2,12 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { Children, Fragment, type ReactNode, useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { IconSymbol, type IconSymbolName } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
@@ -351,9 +356,9 @@ function Segmented({
 
   const tx = useSharedValue(0);
   useEffect(() => {
-    tx.value = withSpring(SEG_PAD + index * (segWidth + SEG_GAP), {
-      damping: 18,
-      stiffness: 220,
+    tx.value = withTiming(SEG_PAD + index * (segWidth + SEG_GAP), {
+      duration: 190,
+      easing: Easing.out(Easing.cubic),
     });
   }, [index, segWidth, tx]);
   const indicatorStyle = useAnimatedStyle(() => ({ transform: [{ translateX: tx.value }] }));
