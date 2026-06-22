@@ -171,3 +171,21 @@ describe('§6.8 case 6 — marginal set-aside crosses brackets', () => {
     expect(m1 + m2 + m3).toBeCloseTo(total, 6);
   });
 });
+
+describe('state coverage — a state missing from the config must flag itself', () => {
+  // AZ is not in the curated seed; it must NOT silently report $0 as complete.
+  const breakdown = computeAnnualTax(
+    { filing_status: 'single', state: 'AZ', net_profit: 60_000 },
+    CONFIG,
+  );
+
+  it('returns $0 state tax but marks it unsupported (not a no-tax state)', () => {
+    expect(breakdown.stateTax).toBe(0);
+    expect(breakdown.stateSupported).toBe(false);
+  });
+
+  it('still computes federal + SE so the estimate is partial, not zero', () => {
+    expect(breakdown.federalIncomeTax).toBeGreaterThan(0);
+    expect(breakdown.se.seTax).toBeGreaterThan(0);
+  });
+});

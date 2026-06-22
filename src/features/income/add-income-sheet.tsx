@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
+import { StateCoverageNotice } from '@/components/state-coverage-notice';
 import { ThemedText } from '@/components/themed-text';
 import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { deductionRepo, incomeSourceRepo } from '@/data';
@@ -280,6 +281,8 @@ function SetAsideResult({
             That keeps you covered for taxes
           </ThemedText>
         </Animated.View>
+
+        <StateCoverageNotice />
 
         {habit && (
           <Animated.View

@@ -27,6 +27,7 @@ import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { Button } from '@/components/button';
 import { IconSymbol, type IconSymbolName } from '@/components/icon-symbol';
 import { StatePicker } from '@/components/state-picker';
+import { StateCoverageNotice } from '@/components/state-coverage-notice';
 import { ThemedText } from '@/components/themed-text';
 import { incomeSourceRepo } from '@/data';
 import {
@@ -326,7 +327,13 @@ export function OnboardingWizard() {
             {page === 8 && <BuildingPlan onDone={goNext} />}
 
             {page === 9 && (
-              <Reveal rate={reveal.rate} tax={reveal.tax} loading={saving} onContinue={finish} />
+              <Reveal
+                rate={reveal.rate}
+                tax={reveal.tax}
+                state={draft.state}
+                loading={saving}
+                onContinue={finish}
+              />
             )}
           </Animated.View>
         </KeyboardAvoidingView>
@@ -603,11 +610,13 @@ function BuildingPlan({ onDone }: { onDone: () => void }) {
 function Reveal({
   rate,
   tax,
+  state,
   loading,
   onContinue,
 }: {
   rate: number;
   tax: number;
+  state?: string;
   loading: boolean;
   onContinue: () => void;
 }) {
@@ -652,6 +661,8 @@ function Reveal({
             </ThemedText>
           </Animated.View>
         )}
+
+        <StateCoverageNotice state={state} />
       </View>
 
       <View style={styles.footer}>

@@ -6,6 +6,7 @@ import { AnimatedEntrance } from '@/components/animated-entrance';
 import { Card } from '@/components/card';
 import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
+import { StateCoverageNotice } from '@/components/state-coverage-notice';
 import { ThemedText } from '@/components/themed-text';
 import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { Radius, Spacing, useTheme } from '@/design';
@@ -95,6 +96,8 @@ export default function HomeScreen() {
             )}
           </View>
         </AnimatedEntrance>
+
+        <StateCoverageNotice />
 
         {habit && (
           <AnimatedEntrance index={2}>
