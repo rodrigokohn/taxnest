@@ -5,6 +5,7 @@ import {
   computeAnnualTax,
   computeSafeHarbor,
   marginalSetAside,
+  marginalSetAsideBreakdown,
   type TaxProfile,
 } from '@/tax-engine';
 
@@ -187,5 +188,22 @@ describe('state coverage — a state missing from the config must flag itself', 
   it('still computes federal + SE so the estimate is partial, not zero', () => {
     expect(breakdown.federalIncomeTax).toBeGreaterThan(0);
     expect(breakdown.se.seTax).toBeGreaterThan(0);
+  });
+});
+
+describe('marginalSetAsideBreakdown — components sum to the total', () => {
+  const args = {
+    priorNetProfit: 40_000,
+    paymentAmount: 5_000,
+    profile: { filing_status: 'single', state: 'CA' } as TaxProfile,
+    config: CONFIG,
+  };
+
+  it('matches marginalSetAside and decomposes into se + federal + state', () => {
+    const b = marginalSetAsideBreakdown(args);
+    expect(b.total).toBeCloseTo(marginalSetAside(args), 6);
+    expect(b.se + b.federal + b.state).toBeCloseTo(b.total, 6);
+    expect(b.se).toBeGreaterThan(0);
+    expect(b.state).toBeGreaterThan(0); // CA is supported
   });
 });

@@ -19,7 +19,7 @@ import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { formatUSD } from '@/lib/money';
 import { useCountUp } from '@/lib/use-count-up';
 import { haptics } from '@/services/haptics';
-import { computeAnnualTax } from '@/tax-engine';
+import { marginalSetAsideBreakdown } from '@/tax-engine';
 import { usePaymentsStore, useProfileStore, useTaxConfigStore } from '@/store';
 
 type Delta = { se: number; federal: number; state: number };
@@ -87,16 +87,14 @@ export function AddIncomeSheet() {
     const priorNetProfit = Math.max(0, priorIncome - deductions);
 
     const taxProfile = { filing_status: profile.filing_status, state: profile.state };
-    const before = computeAnnualTax({ ...taxProfile, net_profit: priorNetProfit }, config);
-    const after = computeAnnualTax({ ...taxProfile, net_profit: priorNetProfit + amount }, config);
-
-    const d: Delta = {
-      se: after.se.seTax - before.se.seTax,
-      federal: after.federalIncomeTax - before.federalIncomeTax,
-      state: after.stateTax - before.stateTax,
-    };
-    setDelta(d);
-    const setAsideValue = Math.max(0, d.se + d.federal + d.state);
+    const b = marginalSetAsideBreakdown({
+      priorNetProfit,
+      paymentAmount: amount,
+      profile: taxProfile,
+      config,
+    });
+    setDelta({ se: b.se, federal: b.federal, state: b.state });
+    const setAsideValue = b.total;
     setSetAside(setAsideValue);
 
     // Habit feedback (streak + milestone) for the result, from the hypothetical
