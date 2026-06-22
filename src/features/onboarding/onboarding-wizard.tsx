@@ -624,22 +624,11 @@ function Reveal({
         <ThemedText variant="secondary" color="textSecondary" style={styles.kicker}>
           YOUR PERSONALIZED PLAN
         </ThemedText>
-        <View style={styles.pctWrap}>
-          <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-            <Defs>
-              <RadialGradient id="pctGlow" cx="50%" cy="50%" r="60%">
-                <Stop offset="0%" stopColor={theme.accent} stopOpacity={0.18} />
-                <Stop offset="100%" stopColor={theme.accent} stopOpacity={0} />
-              </RadialGradient>
-            </Defs>
-            <Rect x="0" y="0" width="100%" height="100%" fill="url(#pctGlow)" />
-          </Svg>
-          <Animated.View entering={ZoomIn.springify().damping(12).mass(0.6)}>
-            <ThemedText style={[styles.revealPct, { color: theme.accent }]}>
-              {Math.round(animatedRate)}%
-            </ThemedText>
-          </Animated.View>
-        </View>
+        <Animated.View entering={ZoomIn.springify().damping(12).mass(0.6)}>
+          <ThemedText style={[styles.revealPct, { color: theme.accent }]}>
+            {Math.round(animatedRate)}%
+          </ThemedText>
+        </Animated.View>
         <ThemedText variant="sectionHeader" style={styles.center}>
           Set this aside from every payment to stay covered
         </ThemedText>
@@ -781,7 +770,6 @@ const styles = StyleSheet.create({
   revealRoot: { flex: 1 },
   revealCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
   kicker: { letterSpacing: 1.5 },
-  pctWrap: { width: 320, height: 150, alignItems: 'center', justifyContent: 'center' },
   revealPct: {
     fontSize: 84,
     fontWeight: '800',
