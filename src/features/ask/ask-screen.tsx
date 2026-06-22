@@ -82,7 +82,7 @@ export function AskScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
+        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}>
         {idle ? (
           <View style={styles.intro}>
             <View style={[styles.introIcon, { backgroundColor: theme.primaryTint }]}>

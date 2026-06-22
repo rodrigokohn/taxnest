@@ -208,7 +208,7 @@ function subscriptionMeta(
   expiresAt: string | null,
 ): { label: string; tone: ThemeColor } {
   const date = expiresAt
-    ? new Date(expiresAt).toLocaleDateString(undefined, {
+    ? new Date(expiresAt).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -305,11 +305,15 @@ function Row({
       <View style={[styles.rowIcon, { backgroundColor: theme.primaryTint }]}>
         <IconSymbol name={icon} color={theme[iconTone]} size={16} />
       </View>
-      <ThemedText variant="body" color={labelColor} style={styles.rowLabel}>
+      <ThemedText
+        variant="body"
+        color={labelColor}
+        numberOfLines={1}
+        style={value != null ? styles.rowLabelFixed : styles.rowLabel}>
         {label}
       </ThemedText>
       {value != null && (
-        <ThemedText variant="body" color={valueColor}>
+        <ThemedText variant="body" color={valueColor} style={styles.rowValue}>
           {value}
         </ThemedText>
       )}
@@ -432,6 +436,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rowLabel: { flex: 1 },
+  rowLabelFixed: { flexShrink: 0, marginRight: Spacing.md },
+  rowValue: { flex: 1, textAlign: 'right' },
   separator: { height: StyleSheet.hairlineWidth, marginLeft: ROW_TEXT_INSET },
   disclaimer: { paddingHorizontal: Spacing.xs, lineHeight: 18, textAlign: 'center' },
   segmented: {
