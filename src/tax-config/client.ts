@@ -2,12 +2,14 @@ import { env } from '@/config/env';
 import { taxConfigCacheRepo } from '@/data/repositories/tax-config-cache';
 import { supabase } from '@/services/supabase';
 import { SEED_TAX_CONFIG_2025 } from '@/tax-config/seed-2025';
+import { SEED_TAX_CONFIG_2026 } from '@/tax-config/seed-2026';
 import { validateTaxConfig } from '@/tax-config/schema';
 import { type TaxConfig } from '@/tax-config/types';
 
 /** Bundled offline-first fallbacks, keyed by tax year. */
 const SEEDS: Record<number, TaxConfig> = {
   2025: SEED_TAX_CONFIG_2025,
+  2026: SEED_TAX_CONFIG_2026,
 };
 
 /** Newest bundled seed year — the offline fallback the UI defaults to before load. */

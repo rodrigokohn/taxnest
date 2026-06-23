@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { SEED_TAX_CONFIG_2025 as CONFIG } from '@/tax-config/seed-2025';
+import { SEED_TAX_CONFIG_2026 as CONFIG_2026 } from '@/tax-config/seed-2026';
 import {
   computeAnnualTax,
   computeSafeHarbor,
@@ -253,6 +254,28 @@ describe('every US state + DC is now supported', () => {
       );
       expect(b.stateSupported).toBe(true);
     }
+  });
+});
+
+describe('§ 2026 federal — single, $60k net profit, TX', () => {
+  const b = computeAnnualTax({ filing_status: 'single', state: 'TX', net_profit: 60_000 }, CONFIG_2026);
+
+  it('uses the 2026 standard deduction + brackets (lower tax than 2025)', () => {
+    // AGI 55,761.135 − $16,100 std − QBI 7,932.227 = taxable 31,728.908
+    // 1,240 (10%) + 2,319.469 (12%) = 3,559.47
+    expect(b.federalIncomeTax).toBeCloseTo(3_559.47, 2);
+  });
+
+  it('SE tax matches 2025 (income below both wage bases) and the year is 2026', () => {
+    expect(b.se.seTax).toBeCloseTo(8_477.73, 2);
+    expect(CONFIG_2026.tax_year).toBe(2026);
+    expect(CONFIG_2026.se.social_security_wage_base).toBe(184_500);
+    expect(CONFIG_2026.quarterly_deadlines).toEqual([
+      '2026-04-15',
+      '2026-06-15',
+      '2026-09-15',
+      '2027-01-15',
+    ]);
   });
 });
 
