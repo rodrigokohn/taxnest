@@ -74,12 +74,12 @@ export function AskScreen() {
         <View style={styles.headerBtns}>
           <Pressable
             onPress={() => setHistoryOpen(true)}
-            hitSlop={10}
+            hitSlop={12}
             accessibilityLabel="Chat history">
-            <IconSymbol name="clock.arrow.circlepath" color={theme.primary} size={22} />
+            <IconSymbol name="clock" color={theme.primary} size={21} />
           </Pressable>
-          <Pressable onPress={newChat} hitSlop={10} accessibilityLabel="New chat">
-            <IconSymbol name="square.and.pencil" color={theme.primary} size={22} />
+          <Pressable onPress={newChat} hitSlop={12} accessibilityLabel="New chat">
+            <IconSymbol name="square.and.pencil" color={theme.primary} size={21} />
           </Pressable>
         </View>
       ),
@@ -362,7 +362,12 @@ function HistoryModal({
 
 const styles = StyleSheet.create({
   root: { flex: 1, paddingHorizontal: Spacing.lg },
-  headerBtns: { flexDirection: 'row', alignItems: 'center', gap: Spacing.lg },
+  headerBtns: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xl,
+    paddingHorizontal: Spacing.xs,
+  },
   scroll: { flex: 1 },
   scrollContent: { paddingVertical: Spacing.lg, gap: Spacing.md, flexGrow: 1 },
   center: { textAlign: 'center' },
