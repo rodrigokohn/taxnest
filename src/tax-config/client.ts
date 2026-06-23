@@ -56,5 +56,18 @@ export async function loadTaxConfig(year: number): Promise<LoadedTaxConfig> {
   const seed = SEEDS[year];
   if (seed) return { config: seed, source: 'seed' };
 
+  // Never leave the app without a config (it would crash the projections).
+  // Fall back to the most recent bundled year we have at or before the
+  // requested one (else the newest we ship). The config's own `tax_year`
+  // tells the UI which year it actually is ("using last saved rates").
+  const seedYears = Object.keys(SEEDS)
+    .map(Number)
+    .filter((y) => Number.isFinite(y));
+  if (seedYears.length > 0) {
+    const atOrBefore = seedYears.filter((y) => y <= year).sort((a, b) => b - a);
+    const fallbackYear = atOrBefore[0] ?? Math.max(...seedYears);
+    return { config: SEEDS[fallbackYear], source: 'seed' };
+  }
+
   throw new Error(`No TaxConfig available for tax year ${year}`);
 }
