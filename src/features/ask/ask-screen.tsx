@@ -1,6 +1,8 @@
-import { useRef, useState } from 'react';
+import { useNavigation } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +19,7 @@ import { TypewriterText } from '@/components/typewriter-text';
 import { Radius, Spacing, useTheme } from '@/design';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { askTaxQuestion } from '@/services/ai';
+import { useChatStore, type Conversation } from '@/store/chat-store';
 import { usePaymentsStore, useProfileStore } from '@/store';
 
 const SUGGESTED = [
@@ -25,30 +28,73 @@ const SUGGESTED = [
   'How does the QBI deduction work?',
 ];
 
-/** Assistant — freelance tax Q&A (PRD §8.8). Pointed questions, not a long chat. */
+/** Assistant — freelance tax Q&A with persisted, revisitable chats (PRD §8.8). */
 export function AskScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const kbHeight = useKeyboardHeight();
+  const navigation = useNavigation();
   const profile = useProfileStore((s) => s.profile);
   const totalSetAside = usePaymentsStore((s) => s.totalSetAside);
   const totalIncome = usePaymentsStore((s) => s.totalIncome);
 
+  const conversations = useChatStore((s) => s.conversations);
+  const activeId = useChatStore((s) => s.activeId);
+  const loadChats = useChatStore((s) => s.load);
+  const startNew = useChatStore((s) => s.startNew);
+  const setActive = useChatStore((s) => s.setActive);
+  const addMessage = useChatStore((s) => s.addMessage);
+  const removeChat = useChatStore((s) => s.remove);
+
   const [question, setQuestion] = useState('');
-  const [asked, setAsked] = useState<string | null>(null);
-  const [answer, setAnswer] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [typingId, setTypingId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+
+  const active = conversations.find((c) => c.id === activeId) ?? null;
+  const messages = active?.messages ?? [];
+
+  useEffect(() => {
+    loadChats();
+  }, [loadChats]);
+
+  function newChat() {
+    startNew();
+    setQuestion('');
+    setError(null);
+    setTypingId(null);
+  }
+
+  // Header: new chat + history.
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerBtns}>
+          <Pressable
+            onPress={() => setHistoryOpen(true)}
+            hitSlop={10}
+            accessibilityLabel="Chat history">
+            <IconSymbol name="clock.arrow.circlepath" color={theme.primary} size={22} />
+          </Pressable>
+          <Pressable onPress={newChat} hitSlop={10} accessibilityLabel="New chat">
+            <IconSymbol name="square.and.pencil" color={theme.primary} size={22} />
+          </Pressable>
+        </View>
+      ),
+    });
+    // newChat is stable enough (only stable setters/actions); set once per theme.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, theme.primary]);
 
   async function ask(q: string) {
     const trimmed = q.trim();
-    if (!trimmed || !profile) return;
-    setAsked(trimmed);
+    if (!trimmed || !profile || loading) return;
+    addMessage('user', trimmed);
     setQuestion('');
     setLoading(true);
     setError(null);
-    setAnswer(null);
     try {
       const result = await askTaxQuestion(
         trimmed,
@@ -60,7 +106,8 @@ export function AskScreen() {
         },
         profile.id,
       );
-      setAnswer(result);
+      const id = addMessage('assistant', result);
+      setTypingId(id);
     } catch {
       setError("Couldn't reach the assistant — try again.");
     } finally {
@@ -68,7 +115,14 @@ export function AskScreen() {
     }
   }
 
-  const idle = !asked && !loading;
+  function openChat(id: string) {
+    setActive(id);
+    setHistoryOpen(false);
+    setError(null);
+    setTypingId(null);
+  }
+
+  const idle = messages.length === 0 && !loading;
 
   return (
     <View
@@ -116,12 +170,34 @@ export function AskScreen() {
           </View>
         ) : (
           <View style={styles.conversation}>
-            {asked && (
-              <View style={[styles.questionBubble, { backgroundColor: theme.primary }]}>
-                <ThemedText variant="body" style={styles.questionText}>
-                  {asked}
-                </ThemedText>
-              </View>
+            {messages.map((m) =>
+              m.role === 'user' ? (
+                <View
+                  key={m.id}
+                  style={[styles.questionBubble, { backgroundColor: theme.primary }]}>
+                  <ThemedText variant="body" style={styles.questionText}>
+                    {m.text}
+                  </ThemedText>
+                </View>
+              ) : (
+                <Animated.View key={m.id} entering={FadeInDown.springify().damping(18)}>
+                  <Card style={styles.answerCard}>
+                    <View style={styles.answerHeader}>
+                      <IconSymbol name="sparkles" color={theme.primary} size={16} />
+                      <ThemedText variant="caption" color="textTertiary">
+                        Assistant
+                      </ThemedText>
+                    </View>
+                    <TypewriterText
+                      text={m.text}
+                      animate={m.id === typingId}
+                      variant="body"
+                      style={styles.answerText}
+                      onTick={() => scrollRef.current?.scrollToEnd({ animated: false })}
+                    />
+                  </Card>
+                </Animated.View>
+              ),
             )}
 
             {loading && (
@@ -137,20 +213,6 @@ export function AskScreen() {
               <ThemedText variant="body" color="danger">
                 {error}
               </ThemedText>
-            )}
-
-            {answer && (
-              <Animated.View entering={FadeInDown.springify().damping(18)}>
-                <Card style={styles.answerCard}>
-                  <View style={styles.answerHeader}>
-                    <IconSymbol name="sparkles" color={theme.primary} size={16} />
-                    <ThemedText variant="caption" color="textTertiary">
-                      Assistant
-                    </ThemedText>
-                  </View>
-                  <TypewriterText text={answer} variant="body" style={styles.answerText} />
-                </Card>
-              </Animated.View>
             )}
           </View>
         )}
@@ -189,12 +251,118 @@ export function AskScreen() {
           />
         </Pressable>
       </View>
+
+      <HistoryModal
+        visible={historyOpen}
+        conversations={conversations}
+        activeId={activeId}
+        onClose={() => setHistoryOpen(false)}
+        onOpen={openChat}
+        onNew={() => {
+          newChat();
+          setHistoryOpen(false);
+        }}
+        onDelete={removeChat}
+      />
     </View>
   );
 }
 
+function HistoryModal({
+  visible,
+  conversations,
+  activeId,
+  onClose,
+  onOpen,
+  onNew,
+  onDelete,
+}: {
+  visible: boolean;
+  conversations: Conversation[];
+  activeId: string | null;
+  onClose: () => void;
+  onOpen: (id: string) => void;
+  onNew: () => void;
+  onDelete: (id: string) => void;
+}) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const sorted = [...conversations]
+    .filter((c) => c.messages.length > 0)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}>
+      <View
+        style={[styles.modalRoot, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+        <View style={styles.modalHeader}>
+          <ThemedText variant="sectionHeader">Your chats</ThemedText>
+          <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Close">
+            <IconSymbol name="xmark" color={theme.textSecondary} size={18} />
+          </Pressable>
+        </View>
+
+        <Pressable
+          onPress={onNew}
+          accessibilityRole="button"
+          style={[styles.newRow, { backgroundColor: theme.primaryTint }]}>
+          <IconSymbol name="square.and.pencil" color={theme.primary} size={18} />
+          <ThemedText variant="body" color="primary" style={styles.newRowText}>
+            New chat
+          </ThemedText>
+        </Pressable>
+
+        <ScrollView contentContainerStyle={styles.modalList} showsVerticalScrollIndicator={false}>
+          {sorted.length === 0 ? (
+            <ThemedText variant="secondary" color="textTertiary" style={styles.modalEmpty}>
+              No past chats yet.
+            </ThemedText>
+          ) : (
+            sorted.map((c) => (
+              <Pressable
+                key={c.id}
+                onPress={() => onOpen(c.id)}
+                accessibilityRole="button"
+                style={[
+                  styles.histRow,
+                  { borderColor: c.id === activeId ? theme.primary : theme.border },
+                ]}>
+                <View style={styles.histMain}>
+                  <ThemedText variant="body" numberOfLines={1}>
+                    {c.title}
+                  </ThemedText>
+                  <ThemedText variant="caption" color="textTertiary">
+                    {new Date(c.updatedAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                    })}{' '}
+                    · {c.messages.filter((m) => m.role === 'user').length} question
+                    {c.messages.filter((m) => m.role === 'user').length === 1 ? '' : 's'}
+                  </ThemedText>
+                </View>
+                <Pressable
+                  onPress={() => onDelete(c.id)}
+                  hitSlop={8}
+                  accessibilityLabel="Delete chat"
+                  style={styles.histDelete}>
+                  <IconSymbol name="trash" color={theme.textTertiary} size={16} />
+                </Pressable>
+              </Pressable>
+            ))
+          )}
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create({
-  root: { flex: 1, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
+  root: { flex: 1, paddingHorizontal: Spacing.lg },
+  headerBtns: { flexDirection: 'row', alignItems: 'center', gap: Spacing.lg },
   scroll: { flex: 1 },
   scrollContent: { paddingVertical: Spacing.lg, gap: Spacing.md, flexGrow: 1 },
   center: { textAlign: 'center' },
@@ -260,4 +428,33 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   input: { flex: 1, fontSize: 16, paddingVertical: Spacing.sm, lineHeight: 20 },
+
+  modalRoot: { flex: 1, paddingHorizontal: Spacing.lg },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.lg,
+  },
+  newRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radius.md,
+  },
+  newRowText: { fontWeight: '600' },
+  modalList: { paddingVertical: Spacing.lg, gap: Spacing.sm },
+  modalEmpty: { textAlign: 'center', marginTop: Spacing.xl },
+  histRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  histMain: { flex: 1, gap: 2 },
+  histDelete: { padding: Spacing.xs },
 });

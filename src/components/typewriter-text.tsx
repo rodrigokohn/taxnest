@@ -16,16 +16,22 @@ function parseBold(text: string): { text: string; bold: boolean }[] {
 export function TypewriterText({
   text,
   speedMs = 16,
+  animate = true,
   onTick,
   ...props
-}: ThemedTextProps & { text: string; speedMs?: number; onTick?: () => void }) {
+}: ThemedTextProps & { text: string; speedMs?: number; animate?: boolean; onTick?: () => void }) {
   const runs = useMemo(() => parseBold(text), [text]);
   const cleanLength = useMemo(() => runs.reduce((n, r) => n + r.text.length, 0), [runs]);
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(animate ? 0 : cleanLength);
 
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setInterval> | undefined;
+
+    if (!animate) {
+      setCount(cleanLength);
+      return;
+    }
 
     AccessibilityInfo.isReduceMotionEnabled().then((reduceMotion) => {
       if (cancelled) return;
@@ -50,7 +56,7 @@ export function TypewriterText({
     };
     // onTick intentionally omitted: a fresh closure each render shouldn't restart typing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, speedMs, cleanLength]);
+  }, [text, speedMs, cleanLength, animate]);
 
   // Render each run sliced to the revealed character count. Nested <Text> inherit
   // the parent ThemedText's size/color; bold runs just add the weight.
