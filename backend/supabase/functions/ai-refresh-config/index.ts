@@ -1,8 +1,10 @@
 // POST /ai/refresh-config — annual TaxConfig refresh job (PRD §9.1).
 // Uses OpenAI + the web search tool (restricted to irs.gov) to EXTRACT the
 // year's federal/SE parameters as strict JSON, then runs the result through the
-// deterministic validation gate before writing. The AI proposes; code disposes.
-// State rules are curated separately, so we preserve the existing `states` block.
+// deterministic validation gate. The AI proposes; a HUMAN disposes: the result
+// is written to `tax_config_drafts` (NOT the live table) and the developer is
+// emailed a one-tap approval link. State rules are curated separately, so we
+// carry over the latest live `states` block unchanged.
 import OpenAI from 'npm:openai@^4';
 import { createClient } from 'npm:@supabase/supabase-js@^2';
 
@@ -52,6 +54,89 @@ function extractJson(text: string): Record<string, unknown> {
   return JSON.parse(raw.slice(start, end + 1));
 }
 
+type DiffEntry = { field: string; from: unknown; to: unknown };
+
+// Field-level diff of the parts the AI actually proposes (se / federal /
+// deadlines). States are carried over unchanged, so we skip them.
+function deepDiff(a: unknown, b: unknown, path: string, out: DiffEntry[]): void {
+  const isObj = (v: unknown) => typeof v === 'object' && v !== null && !Array.isArray(v);
+  if (isObj(a) && isObj(b)) {
+    const keys = new Set([...Object.keys(a as object), ...Object.keys(b as object)]);
+    for (const k of keys) {
+      deepDiff(
+        (a as Record<string, unknown>)[k],
+        (b as Record<string, unknown>)[k],
+        path ? `${path}.${k}` : k,
+        out,
+      );
+    }
+    return;
+  }
+  if (JSON.stringify(a) !== JSON.stringify(b)) out.push({ field: path, from: a, to: b });
+}
+
+function summarizeDiff(live: Record<string, unknown> | null, candidate: Record<string, unknown>) {
+  if (!live) return [{ field: '(all)', from: null, to: 'first config for this year' }];
+  const out: DiffEntry[] = [];
+  for (const key of ['se', 'federal', 'quarterly_deadlines']) {
+    deepDiff(live[key], candidate[key], key, out);
+  }
+  return out;
+}
+
+function diffRows(diff: DiffEntry[]): string {
+  if (diff.length === 0) return '<tr><td colspan="3"><em>No changes vs the live config.</em></td></tr>';
+  return diff
+    .map(
+      (d) =>
+        `<tr><td style="font-family:monospace">${d.field}</td>` +
+        `<td>${JSON.stringify(d.from)}</td><td><b>${JSON.stringify(d.to)}</b></td></tr>`,
+    )
+    .join('');
+}
+
+async function sendApprovalEmail(args: {
+  year: number;
+  approveUrl: string;
+  diff: DiffEntry[];
+  sourceUrls: string[];
+}): Promise<'sent' | 'skipped' | 'error'> {
+  const apiKey = Deno.env.get('RESEND_API_KEY');
+  const to = Deno.env.get('REFRESH_NOTIFY_EMAIL');
+  const from = Deno.env.get('RESEND_FROM') ?? 'Taxnest <onboarding@resend.dev>';
+  if (!apiKey || !to) return 'skipped';
+
+  const html = `
+    <h2>Taxnest — review the ${args.year} tax config</h2>
+    <p>The annual refresh fetched the ${args.year} federal/SE parameters from irs.gov.
+    Nothing is live yet. Review the changes below, then approve.</p>
+    <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+      <tr><th>Field</th><th>Current</th><th>Proposed</th></tr>
+      ${diffRows(args.diff)}
+    </table>
+    <p>Sources: ${args.sourceUrls.map((u) => `<a href="${u}">${u}</a>`).join(', ') || '—'}</p>
+    <p style="margin:24px 0">
+      <a href="${args.approveUrl}"
+         style="background:#D85A30;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">
+         ✓ Approve &amp; make ${args.year} live
+      </a>
+    </p>
+    <p style="color:#888;font-size:12px">Reminder: state brackets are carried over from the prior
+    year and reviewed separately. Confirm the federal numbers above match the IRS release.</p>`;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to, subject: `Taxnest: approve the ${args.year} tax config`, html }),
+    });
+    return res.ok ? 'sent' : 'error';
+  } catch (err) {
+    console.error('resend send failed', err);
+    return 'error';
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ error: 'method not allowed' }, 405);
@@ -63,16 +148,24 @@ Deno.serve(async (req) => {
   }
 
   const body = await req.json().catch(() => ({}));
-  const year: number = body.year ?? new Date().getFullYear();
+  // Default to NEXT year: the job runs late in the year to stage the upcoming one.
+  const year: number = body.year ?? new Date().getFullYear() + 1;
 
-  const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceKey);
-  const { data: existing } = await admin
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const admin = createClient(supabaseUrl, serviceKey);
+
+  // Latest live config at or before the target year — its states are carried
+  // over, and it's what we diff the proposal against.
+  const { data: live } = await admin
     .from('tax_configs')
     .select('config')
-    .eq('tax_year', year)
+    .lte('tax_year', year)
+    .order('tax_year', { ascending: false })
+    .limit(1)
     .maybeSingle();
-  const existingStates =
-    (existing?.config as { states?: Record<string, unknown> } | null)?.states ?? {};
+  const liveConfig = (live?.config as Record<string, unknown> | null) ?? null;
+  const carriedStates =
+    (liveConfig as { states?: Record<string, unknown> } | null)?.states ?? {};
 
   const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY') ?? '' });
 
@@ -94,27 +187,49 @@ Deno.serve(async (req) => {
       se: extracted.se,
       federal: extracted.federal,
       quarterly_deadlines: extracted.quarterly_deadlines,
-      states: existingStates, // curated separately — preserve
+      states: carriedStates, // curated separately — carry over the latest live set
     };
 
     const result = validateTaxConfig(candidate);
     if (!result.ok) {
-      // Validation failed — do NOT overwrite the live config (PRD §9.1).
+      // Validation failed — do NOT stage anything (PRD §9.1). The live config stays.
       console.error('refresh-config validation failed', result.errors);
       return jsonResponse({ ok: false, errors: result.errors }, 422);
     }
 
-    await admin.from('tax_configs').upsert(
+    const diff = summarizeDiff(liveConfig, result.config as unknown as Record<string, unknown>);
+    const sourceUrls = (candidate.source_urls as string[]) ?? [];
+
+    // Stage the proposal with a fresh single-use token; reset to pending if re-run.
+    const token = crypto.randomUUID();
+    const { error: draftErr } = await admin.from('tax_config_drafts').upsert(
       {
         tax_year: year,
         config: result.config,
-        last_updated: candidate.last_updated,
-        source_urls: candidate.source_urls,
+        diff,
+        source_urls: sourceUrls,
+        approval_token: token,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        reviewed_at: null,
       },
       { onConflict: 'tax_year' },
     );
+    if (draftErr) throw draftErr;
 
-    return jsonResponse({ ok: true, tax_year: year, source_urls: candidate.source_urls });
+    const approveUrl =
+      `${supabaseUrl}/functions/v1/approve-tax-config?year=${year}&token=${token}`;
+    const email = await sendApprovalEmail({ year, approveUrl, diff, sourceUrls });
+
+    // approveUrl is returned so the link is recoverable from logs even if email is off.
+    return jsonResponse({
+      ok: true,
+      staged: true,
+      tax_year: year,
+      changes: diff.length,
+      email,
+      approveUrl,
+    });
   } catch (err) {
     console.error('ai-refresh-config error', err);
     return jsonResponse({ ok: false, error: String(err) }, 500);

@@ -14,6 +14,10 @@ Run the migrations in order:
 1. `supabase/migrations/0001_tax_configs.sql` — `tax_configs` table + public-read RLS.
 2. `supabase/migrations/0002_seed_2025.sql` — seeds the 2025 config (already applied).
 3. `supabase/migrations/0003_ai_ask_usage.sql` — per-user rate-limit table for the Q&A.
+4. `supabase/migrations/0004_seed_2026.sql` — seeds the 2026 config.
+5. `supabase/migrations/0005_tax_config_drafts.sql` — staging table for proposed configs.
+6. `supabase/migrations/0006_schedule_refresh.sql` — yearly pg_cron job (fill in the Vault
+   secrets first — see comments in the file).
 
 The app reads `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` from
 `.env` (see `.env.example`).
@@ -25,29 +29,54 @@ the OpenAI key once:
 
 ```bash
 supabase secrets set OPENAI_API_KEY=sk-...
+# For the one-tap approval email (optional but recommended):
+supabase secrets set RESEND_API_KEY=re_...
+supabase secrets set REFRESH_NOTIFY_EMAIL=support.taxnest@gmail.com
+supabase secrets set RESEND_FROM="Taxnest <noreply@taxnest.site>"
 
 supabase functions deploy ai-ask
 supabase functions deploy ai-refresh-config --no-verify-jwt
+supabase functions deploy approve-tax-config --no-verify-jwt
 ```
 
 - **`ai-ask`** — Pro Q&A. Verifies the project JWT (the app's anon key passes;
   becomes the auth user once login lands). Reads anonymized context, returns prose
   with a fixed disclaimer, and enforces a daily per-user cap.
-- **`ai-refresh-config`** — admin job. Guarded by an `Authorization: Bearer <service_role>`
-  check; uses OpenAI + web search (irs.gov only) to extract the year's federal/SE
-  params, merges the curated `states` block, runs the **deterministic validation
-  gate**, and upserts only if it passes. Run it ~once a year:
+
+### The annual refresh — automatic fetch, you approve once
+
+The point of this flow: the app stays correct year over year **without manual
+data entry**, but a wrong AI reading can never reach users — you confirm once.
+
+1. **`ai-refresh-config`** (admin job, runs yearly via `pg_cron`). Uses OpenAI +
+   web search (irs.gov only) to extract next year's federal/SE params, carries
+   over the curated `states` block, and runs the **deterministic validation
+   gate**. On pass it writes a **draft** to `tax_config_drafts` (NOT the live
+   table) and emails you a diff + a one-tap approval link. On fail it stages
+   nothing and the live config is untouched.
+2. **You get an email** (via Resend) titled "approve the {year} tax config",
+   showing every field that changed (current → proposed) and the irs.gov
+   sources. If email isn't configured, the approval URL is also returned in the
+   function's JSON response and logs.
+3. **`approve-tax-config`** — clicking the link re-validates the draft, copies it
+   into `tax_configs` (live), and marks the draft approved. Clients pick up the
+   new year automatically. The token is single-use.
+
+Trigger it manually any time (defaults to next year):
 
 ```bash
 curl -X POST "$SUPABASE_URL/functions/v1/ai-refresh-config" \
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"year": 2026}'
+  -d '{"year": 2027}'
 ```
 
-To automate, schedule that call yearly with `pg_cron` + `pg_net`, or a Supabase
-scheduled function. Models: Q&A `gpt-5.4-mini`, refresh `gpt-5.5` (one constant
-in each function).
+The yearly schedule lives in `migrations/0006_schedule_refresh.sql` (mid-November,
+for the following year). Models: Q&A `gpt-5.4-mini`, refresh `gpt-5.5`.
+
+> **State brackets are deliberately carried over** from the prior year by this
+> job (they're curated, not scraped — an early scrape misread several graduated
+> states as flat). Verified state-bracket updates are a separate manual review.
 
 ## 3. Auth (next — Google + Apple)
 
