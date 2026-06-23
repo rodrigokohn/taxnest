@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useEntitlementStore, useIsPro } from '@/config/gating';
-import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
+import { calendarYear } from '@/config/tax-year';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   configurePurchases,
@@ -50,7 +50,7 @@ export default function RootLayout() {
     useThemeStore.getState().init();
     initAuth();
     loadProfile();
-    loadConfig(DEFAULT_TAX_YEAR);
+    loadConfig(calendarYear());
   }, [initAuth, loadProfile, loadConfig]);
 
   // Keep the entitlement tied to the signed-in user.

@@ -10,14 +10,21 @@ const SEEDS: Record<number, TaxConfig> = {
   2025: SEED_TAX_CONFIG_2025,
 };
 
+/** Newest bundled seed year — the offline fallback the UI defaults to before load. */
+export const LATEST_SEED_YEAR = Math.max(...Object.keys(SEEDS).map(Number));
+
 export type TaxConfigSource = 'backend' | 'cache' | 'seed';
 export type LoadedTaxConfig = { config: TaxConfig; source: TaxConfigSource };
 
 async function fetchFromBackend(year: number): Promise<unknown | null> {
+  // Most recent config at or before the requested year, so adding a newer year
+  // to the backend advances the app automatically (no app update needed).
   const { data, error } = await supabase
     .from('tax_configs')
     .select('config')
-    .eq('tax_year', year)
+    .lte('tax_year', year)
+    .order('tax_year', { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (error) throw error;
   return (data as { config: unknown } | null)?.config ?? null;

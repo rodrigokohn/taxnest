@@ -10,7 +10,6 @@ import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
 import { StateCoverageNotice } from '@/components/state-coverage-notice';
 import { ThemedText } from '@/components/themed-text';
-import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { deductionRepo, incomeSourceRepo } from '@/data';
 import { Radius, Spacing, useTheme } from '@/design';
 import { highestMilestoneReached } from '@/features/dashboard/milestones';
@@ -20,7 +19,7 @@ import { formatUSD } from '@/lib/money';
 import { useCountUp } from '@/lib/use-count-up';
 import { haptics } from '@/services/haptics';
 import { marginalSetAsideBreakdown } from '@/tax-engine';
-import { usePaymentsStore, useProfileStore, useTaxConfigStore } from '@/store';
+import { useActiveTaxYear, usePaymentsStore, useProfileStore, useTaxConfigStore } from '@/store';
 
 type Delta = { se: number; federal: number; state: number };
 type HabitFeedback = { streak: number; total: number; milestone: number | null };
@@ -45,6 +44,7 @@ export function AddIncomeSheet() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const kbHeight = useKeyboardHeight();
+  const taxYear = useActiveTaxYear();
 
   const [stage, setStage] = useState<'input' | 'result'>('input');
   const [amountText, setAmountText] = useState('');
@@ -81,9 +81,9 @@ export function AddIncomeSheet() {
     if (!profile || !config || amount <= 0) return;
 
     setCalculating(true);
-    await usePaymentsStore.getState().load(DEFAULT_TAX_YEAR);
+    await usePaymentsStore.getState().load(taxYear);
     const priorIncome = usePaymentsStore.getState().totalIncome;
-    const deductions = await deductionRepo.sumByYear(DEFAULT_TAX_YEAR);
+    const deductions = await deductionRepo.sumByYear(taxYear);
     const priorNetProfit = Math.max(0, priorIncome - deductions);
 
     const taxProfile = { filing_status: profile.filing_status, state: profile.state };
@@ -130,7 +130,7 @@ export function AddIncomeSheet() {
       date: date.toISOString().slice(0, 10),
       set_aside_amount: setAside,
       note: note.trim() || undefined,
-      tax_year: DEFAULT_TAX_YEAR,
+      tax_year: taxYear,
     });
     router.navigate('/');
   }

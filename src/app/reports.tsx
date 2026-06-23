@@ -8,7 +8,7 @@ import { Card } from '@/components/card';
 import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
+import { useActiveTaxYear } from '@/store';
 import { Radius, Spacing, useTheme } from '@/design';
 import { formatUSD } from '@/lib/money';
 import { gatherReportData, type ReportData } from '@/features/reports/report-data';
@@ -21,22 +21,23 @@ export default function ReportsRoute() {
   const [busy, setBusy] = useState(false);
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const taxYear = useActiveTaxYear();
 
   useEffect(() => {
     let cancelled = false;
-    gatherReportData(DEFAULT_TAX_YEAR)
+    gatherReportData(taxYear)
       .then((d) => !cancelled && setData(d))
       .catch(() => {})
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [taxYear]);
 
   async function generate() {
     setBusy(true);
     try {
-      await generateAndShareReport(DEFAULT_TAX_YEAR);
+      await generateAndShareReport(taxYear);
     } catch {
       Alert.alert('Reports', 'Could not generate the report. Please try again.');
     } finally {
@@ -53,7 +54,7 @@ export default function ReportsRoute() {
               <IconSymbol name="doc.text.fill" color={theme.primary} size={28} />
             </View>
             <ThemedText variant="screenTitle" style={styles.center}>
-              Your {DEFAULT_TAX_YEAR} tax report
+              Your {taxYear} tax report
             </ThemedText>
             <ThemedText variant="body" color="textSecondary" style={styles.center}>
               A clean summary you can send straight to your accountant.

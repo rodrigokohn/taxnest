@@ -14,7 +14,6 @@ import { ThemedText } from '@/components/themed-text';
 import { useEntitlementStore, useIsPro, type SubStatus } from '@/config/gating';
 import { DISCLAIMER } from '@/config/estimate-scope';
 import { PRIVACY_URL, TERMS_URL } from '@/config/legal';
-import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { FILING_STATUS_LABELS } from '@/domain';
 import { Radius, Spacing, type ThemeColor, useTheme } from '@/design';
 import { formatUSD } from '@/lib/money';
@@ -25,7 +24,7 @@ import {
   requestNotificationPermission,
   scheduleQuarterlyReminders,
 } from '@/services/notifications';
-import { useAuthStore, useProfileStore, useTaxConfigStore } from '@/store';
+import { useActiveTaxYear, useAuthStore, useProfileStore, useTaxConfigStore } from '@/store';
 import { useThemeStore, type ThemePreference } from '@/store/theme-store';
 
 const ROW_ICON = 30;
@@ -44,6 +43,7 @@ export default function SettingsScreen() {
   const signOut = useAuthStore((s) => s.signOut);
   const themePreference = useThemeStore((s) => s.preference);
   const setThemePreference = useThemeStore((s) => s.setPreference);
+  const taxYear = useActiveTaxYear();
 
   function confirmSignOut() {
     Alert.alert('Sign out', 'Sign out of Taxnest?', [
@@ -85,7 +85,7 @@ export default function SettingsScreen() {
         title={profile ? FILING_STATUS_LABELS[profile.filing_status] : 'Set up your profile'}
         subtitle={
           profile
-            ? `${stateName(profile.state)} · ${formatUSD(profile.estimated_annual_income)} · ${DEFAULT_TAX_YEAR}`
+            ? `${stateName(profile.state)} · ${formatUSD(profile.estimated_annual_income)} · ${taxYear}`
             : 'Filing status, state, and income'
         }
         onPress={() => router.navigate('/edit-profile')}

@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { deductionRepo } from '@/data';
 import { type DeadlineInfo, nextQuarterlyDeadline } from '@/lib/deadlines';
 import { computeAnnualTax, computeSafeHarbor } from '@/tax-engine';
-import { usePaymentsStore, useProfileStore, useTaxConfigStore } from '@/store';
+import { useActiveTaxYear, usePaymentsStore, useProfileStore, useTaxConfigStore } from '@/store';
 
 export type DashboardData = {
   totalSetAside: number;
@@ -26,15 +25,16 @@ export function useDashboardData(): DashboardData | null {
   const totalSetAside = usePaymentsStore((s) => s.totalSetAside);
   const totalIncome = usePaymentsStore((s) => s.totalIncome);
   const payments = usePaymentsStore((s) => s.payments);
+  const taxYear = useActiveTaxYear();
   const [deductions, setDeductions] = useState(0);
 
   useEffect(() => {
-    usePaymentsStore.getState().load(DEFAULT_TAX_YEAR);
-  }, []);
+    usePaymentsStore.getState().load(taxYear);
+  }, [taxYear]);
 
   useEffect(() => {
-    deductionRepo.sumByYear(DEFAULT_TAX_YEAR).then(setDeductions);
-  }, [payments]);
+    deductionRepo.sumByYear(taxYear).then(setDeductions);
+  }, [payments, taxYear]);
 
   return useMemo(() => {
     if (!profile || !config) return null;

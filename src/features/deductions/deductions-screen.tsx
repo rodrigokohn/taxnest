@@ -6,14 +6,13 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { IconSymbol, type IconSymbolName } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
-import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { deductionRepo } from '@/data';
 import { DEDUCTION_CATEGORIES, type Deduction, type DeductionCategory } from '@/domain';
 import { Radius, Spacing, useTheme } from '@/design';
 import { formatUSD } from '@/lib/money';
 import { useCountUp } from '@/lib/use-count-up';
 import { computeAnnualTax } from '@/tax-engine';
-import { usePaymentsStore, useProfileStore, useTaxConfigStore } from '@/store';
+import { useActiveTaxYear, usePaymentsStore, useProfileStore, useTaxConfigStore } from '@/store';
 
 const META: Record<DeductionCategory, { label: string; icon: IconSymbolName }> = {
   home_office: { label: 'Home office', icon: 'house.fill' },
@@ -48,6 +47,7 @@ export function DeductionsScreen() {
   const profile = useProfileStore((s) => s.profile);
   const config = useTaxConfigStore((s) => s.config);
   const totalIncome = usePaymentsStore((s) => s.totalIncome);
+  const taxYear = useActiveTaxYear();
 
   const [items, setItems] = useState<Deduction[]>([]);
   const [adding, setAdding] = useState(false);
@@ -55,10 +55,11 @@ export function DeductionsScreen() {
   const [amountText, setAmountText] = useState('');
   const amount = parseFloat(amountText) || 0;
 
-  const load = () => deductionRepo.listByYear(DEFAULT_TAX_YEAR).then(setItems);
+  const load = () => deductionRepo.listByYear(taxYear).then(setItems);
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taxYear]);
 
   const total = useMemo(() => items.reduce((s, d) => s + d.amount, 0), [items]);
   const totalValue = useCountUp(total);
@@ -81,7 +82,7 @@ export function DeductionsScreen() {
       category,
       amount,
       date: new Date().toISOString().slice(0, 10),
-      tax_year: DEFAULT_TAX_YEAR,
+      tax_year: taxYear,
     });
     setAmountText('');
     setAdding(false);
@@ -101,7 +102,7 @@ export function DeductionsScreen() {
       <AnimatedEntrance index={0}>
         <View style={[styles.summary, { backgroundColor: theme.primaryTint }]}>
           <ThemedText variant="secondary" color="textSecondary">
-            Total deductions · {DEFAULT_TAX_YEAR}
+            Total deductions · {taxYear}
           </ThemedText>
           <ThemedText variant="heroNumber" style={styles.summaryNumber}>
             {formatUSD(totalValue)}

@@ -9,7 +9,7 @@ import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
 import { StateCoverageNotice } from '@/components/state-coverage-notice';
 import { ThemedText } from '@/components/themed-text';
-import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
+import { useActiveTaxYear } from '@/store';
 import { Radius, Spacing, useTheme } from '@/design';
 import { CoverageStreak } from '@/features/dashboard/coverage-streak';
 import { MilestoneCelebration } from '@/features/dashboard/milestone-celebration';
@@ -30,6 +30,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const data = useDashboardData();
   const habit = useHabitData();
+  const taxYear = useActiveTaxYear();
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [celebrating, setCelebrating] = useState<number | null>(null);
 
@@ -41,15 +42,15 @@ export default function HomeScreen() {
     let cancelled = false;
     const reached = highestMilestoneReached(total);
     if (!reached) return;
-    getCelebratedMilestone(DEFAULT_TAX_YEAR).then((celebrated) => {
+    getCelebratedMilestone(taxYear).then((celebrated) => {
       if (cancelled || reached <= celebrated) return;
       setCelebrating(reached);
-      void setCelebratedMilestone(DEFAULT_TAX_YEAR, reached);
+      void setCelebratedMilestone(taxYear, reached);
     });
     return () => {
       cancelled = true;
     };
-  }, [total]);
+  }, [total, taxYear]);
 
   const covered = (data?.hasPayments ?? false) && !(habit?.atRisk ?? false);
 
@@ -65,7 +66,7 @@ export default function HomeScreen() {
             <ThemedText variant="screenTitle">{greeting()}</ThemedText>
             <View style={[styles.yearChip, { backgroundColor: theme.surface }]}>
               <ThemedText variant="secondary" color="textSecondary">
-                {DEFAULT_TAX_YEAR}
+                {taxYear}
               </ThemedText>
             </View>
           </View>

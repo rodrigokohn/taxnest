@@ -6,7 +6,6 @@ import { Card } from '@/components/card';
 import { IconSymbol, type IconSymbolName } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { quarterlyPaymentRepo } from '@/data';
 import { type Quarter, type QuarterlyPayment } from '@/domain';
 import { Radius, Spacing, useTheme } from '@/design';
@@ -15,7 +14,7 @@ import { formatUSD } from '@/lib/money';
 import { useCountUp } from '@/lib/use-count-up';
 import { haptics } from '@/services/haptics';
 import { useDashboardData } from '@/features/dashboard/use-dashboard-data';
-import { useTaxConfigStore } from '@/store';
+import { useActiveTaxYear, useTaxConfigStore } from '@/store';
 
 type Status = 'paid' | 'overdue' | 'due_soon' | 'upcoming';
 type Tone = 'success' | 'warning' | 'danger' | 'textTertiary';
@@ -37,12 +36,13 @@ export default function TaxesScreen() {
   const theme = useTheme();
   const config = useTaxConfigStore((s) => s.config);
   const dashboard = useDashboardData();
+  const taxYear = useActiveTaxYear();
   const [paidByQuarter, setPaidByQuarter] = useState<Record<number, QuarterlyPayment>>({});
 
   const refresh = useCallback(async () => {
-    const list = await quarterlyPaymentRepo.listByYear(DEFAULT_TAX_YEAR);
+    const list = await quarterlyPaymentRepo.listByYear(taxYear);
     setPaidByQuarter(Object.fromEntries(list.map((q) => [q.quarter, q])));
-  }, []);
+  }, [taxYear]);
 
   useEffect(() => {
     refresh();
@@ -69,10 +69,10 @@ export default function TaxesScreen() {
 
   async function toggle(quarter: Quarter, currentlyPaid: boolean) {
     if (currentlyPaid) {
-      await quarterlyPaymentRepo.markUnpaid(DEFAULT_TAX_YEAR, quarter);
+      await quarterlyPaymentRepo.markUnpaid(taxYear, quarter);
     } else {
       await quarterlyPaymentRepo.markPaid(
-        DEFAULT_TAX_YEAR,
+        taxYear,
         quarter,
         suggested,
         new Date().toISOString().slice(0, 10),
@@ -99,7 +99,7 @@ export default function TaxesScreen() {
             <ThemedText variant="screenTitle">Quarterly taxes</ThemedText>
             <View style={[styles.yearChip, { backgroundColor: theme.surface }]}>
               <ThemedText variant="secondary" color="textSecondary">
-                {DEFAULT_TAX_YEAR}
+                {taxYear}
               </ThemedText>
             </View>
           </View>
@@ -182,12 +182,13 @@ function FocusLine({
   allPaid: boolean;
 }) {
   const theme = useTheme();
+  const taxYear = useActiveTaxYear();
   if (allPaid) {
     return (
       <View style={styles.focusRow}>
         <IconSymbol name="checkmark.seal.fill" color={theme.success} size={16} />
         <ThemedText variant="secondary" color="success">
-          You’re all caught up for {DEFAULT_TAX_YEAR}
+          You’re all caught up for {taxYear}
         </ThemedText>
       </View>
     );

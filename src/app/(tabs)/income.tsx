@@ -7,14 +7,13 @@ import { AnimatedEntrance } from '@/components/animated-entrance';
 import { IconSymbol } from '@/components/icon-symbol';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { DEFAULT_TAX_YEAR } from '@/config/tax-year';
 import { incomeSourceRepo } from '@/data';
 import { type IncomeSource, type Payment } from '@/domain';
 import { Radius, Spacing, useTheme } from '@/design';
 import { formatUSD } from '@/lib/money';
 import { useCountUp } from '@/lib/use-count-up';
 import { haptics } from '@/services/haptics';
-import { usePaymentsStore } from '@/store';
+import { useActiveTaxYear, usePaymentsStore } from '@/store';
 
 type Section = { title: string; data: Payment[] };
 
@@ -57,13 +56,14 @@ export default function IncomeScreen() {
   const [undoItem, setUndoItem] = useState<Payment | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const incomeValue = useCountUp(totalIncome);
+  const taxYear = useActiveTaxYear();
 
   useEffect(() => {
-    usePaymentsStore.getState().load(DEFAULT_TAX_YEAR);
+    usePaymentsStore.getState().load(taxYear);
     incomeSourceRepo.list().then((list) => {
       setSources(Object.fromEntries(list.map((s) => [s.id, s])));
     });
-  }, []);
+  }, [taxYear]);
 
   const sections = useMemo(() => groupByMonth(payments), [payments]);
 
@@ -154,12 +154,13 @@ export default function IncomeScreen() {
 
 function Header() {
   const theme = useTheme();
+  const taxYear = useActiveTaxYear();
   return (
     <View style={styles.headerRow}>
       <ThemedText variant="screenTitle">Income</ThemedText>
       <View style={[styles.yearChip, { backgroundColor: theme.surface }]}>
         <ThemedText variant="secondary" color="textSecondary">
-          {DEFAULT_TAX_YEAR}
+          {taxYear}
         </ThemedText>
       </View>
     </View>
