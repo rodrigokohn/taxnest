@@ -173,10 +173,10 @@ describe('§6.8 case 6 — marginal set-aside crosses brackets', () => {
   });
 });
 
-describe('state coverage — a state missing from the config must flag itself', () => {
-  // OH is not in the curated seed yet; it must NOT silently report $0 as complete.
+describe('state coverage — an unknown code must flag itself (not silently $0)', () => {
+  // All 50 states + DC are configured now; an unrecognized code stays unsupported.
   const breakdown = computeAnnualTax(
-    { filing_status: 'single', state: 'OH', net_profit: 60_000 },
+    { filing_status: 'single', state: 'ZZ', net_profit: 60_000 },
     CONFIG,
   );
 
@@ -191,16 +191,88 @@ describe('state coverage — a state missing from the config must flag itself', 
   });
 });
 
-describe('flat state — Arizona ($60k single)', () => {
-  const breakdown = computeAnnualTax(
-    { filing_status: 'single', state: 'AZ', net_profit: 60_000 },
-    CONFIG,
-  );
+describe('every US state + DC is now supported', () => {
+  const CODES = [
+    'AL',
+    'AK',
+    'AZ',
+    'AR',
+    'CA',
+    'CO',
+    'CT',
+    'DE',
+    'DC',
+    'FL',
+    'GA',
+    'HI',
+    'ID',
+    'IL',
+    'IN',
+    'IA',
+    'KS',
+    'KY',
+    'LA',
+    'ME',
+    'MD',
+    'MA',
+    'MI',
+    'MN',
+    'MS',
+    'MO',
+    'MT',
+    'NE',
+    'NV',
+    'NH',
+    'NJ',
+    'NM',
+    'NY',
+    'NC',
+    'ND',
+    'OH',
+    'OK',
+    'OR',
+    'PA',
+    'RI',
+    'SC',
+    'SD',
+    'TN',
+    'TX',
+    'UT',
+    'VT',
+    'VA',
+    'WA',
+    'WV',
+    'WI',
+    'WY',
+  ];
+  it('flips supported=true for all 51 jurisdictions', () => {
+    for (const code of CODES) {
+      const b = computeAnnualTax(
+        { filing_status: 'single', state: code, net_profit: 60_000 },
+        CONFIG,
+      );
+      expect(b.stateSupported).toBe(true);
+    }
+  });
+});
 
-  it('applies the 2.5% flat rate to AGI minus the standard deduction', () => {
-    // AGI 55,761.135 − $15,000 std = 40,761.135 × 0.025 = 1,019.03
-    expect(breakdown.stateSupported).toBe(true);
-    expect(breakdown.stateTax).toBeCloseTo(1_019.03, 2);
+describe('state golden cases ($60k single, AGI 55,761.135)', () => {
+  const at = (state: string) =>
+    computeAnnualTax({ filing_status: 'single', state, net_profit: 60_000 }, CONFIG);
+
+  it('Arizona flat 2.5% → $1,019.03', () => {
+    // (55,761.135 − 15,000) × 0.025
+    expect(at('AZ').stateTax).toBeCloseTo(1_019.03, 2);
+  });
+
+  it('New Jersey graduated → $1,588.30', () => {
+    // 280 + 262.5 + 175 + (55,761.135 − 40,000) × 0.05525
+    expect(at('NJ').stateTax).toBeCloseTo(1_588.3, 2);
+  });
+
+  it('Oregon graduated → $4,325.10', () => {
+    // std $2,800 → taxable 52,961.135: 209 + 448.875 + (52,961.135 − 11,050) × 0.0875
+    expect(at('OR').stateTax).toBeCloseTo(4_325.1, 2);
   });
 });
 
