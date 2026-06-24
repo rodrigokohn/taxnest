@@ -936,7 +936,9 @@ irs.gov, set it to null — never guess.
 
 ---
 
-## 11. Gating Free vs. Pro
+## 11. Assinatura (subscription-only)
+
+> **Atualização (modelo lançado):** o app é **subscription-only** — não há tier Free. Depois de um **trial de 30 dias** (Apple), o app inteiro fica atrás da assinatura e tudo abaixo está incluído. A coluna "Free" da tabela a seguir é do plano original (freemium) e **não** reflete o produto lançado.
 
 | Recurso                                | Free        | Pro                    |
 | -------------------------------------- | ----------- | ---------------------- |
@@ -952,13 +954,13 @@ irs.gov, set it to null — never guess.
 | Q&A fiscal por IA                      | ✗           | ✓                      |
 | Sync em nuvem                          | ✗           | ✓                      |
 
-**Preço:**
+**Preço (modelo lançado):**
 
-- **Pro mensal:** $4,99/mês
-- **Pro anual:** $39,99/ano (destacar "save 33%" / "~$3.33/mo")
-- **Trial:** 7 dias grátis no anual (testar; pode aumentar conversão nesse nicho).
+- **Mensal:** $7,99/mês
+- **Anual:** $49,99/ano (destacar "save 48%" / "~$4.17/mo")
+- **Trial:** 30 dias grátis (Apple).
 
-Racional do anual: o usuário pensa em ciclo fiscal anual, então pagar por ano faz sentido psicológico e reduz churn. A âncora de preço é favorável — um CPA custa $150–400/ano, o TurboTax Self-Employed $89–129. $39,99/ano é claramente mais barato e resolve um problema diferente (proativo).
+Racional do anual: o usuário pensa em ciclo fiscal anual, então pagar por ano faz sentido psicológico e reduz churn. A âncora de preço é favorável — um CPA custa $150–400/ano, o TurboTax Self-Employed $89–129. $49,99/ano é claramente mais barato e resolve um problema diferente (proativo).
 
 Implementar tudo via **RevenueCat entitlements** (entitlement `pro`).
 
