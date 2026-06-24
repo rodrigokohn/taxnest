@@ -47,8 +47,12 @@ Deno.serve(async (req) => {
     // Wrong/old token — likely a re-run replaced it. Don't reveal which.
     return page('Link expired', 'This approval link is no longer valid. Run the refresh again to get a fresh one.', 410);
   }
-  if (draft.status === 'approved') {
-    return page('Already live', `The ${year} tax config was already approved and is live. ✓`);
+  if (draft.status !== 'pending') {
+    // Only a pending draft can be promoted. A reviewed (approved/rejected) draft
+    // stays closed, so a stale email link can't resurrect a rejected proposal.
+    return draft.status === 'approved'
+      ? page('Already live', `The ${year} tax config was already approved and is live. ✓`)
+      : page('Draft closed', `This ${year} draft was reviewed and is no longer open for approval.`, 409);
   }
 
   // Defense in depth: never promote a config that doesn't pass the gate.

@@ -277,6 +277,20 @@ describe('§ 2026 federal — single, $60k net profit, TX', () => {
       '2027-01-15',
     ]);
   });
+
+  // Authoritative anchors — Tax Foundation Table 1, citing IRS Rev. Proc.
+  // 2025-32. These caught a bad AI refresh that shaved $25–50 off the 32%/QBI
+  // thresholds; if a future refresh changes them, this test must fail.
+  it('matches the IRS-verified 2026 thresholds (Rev. Proc. 2025-32)', () => {
+    const single = CONFIG_2026.federal.brackets.single;
+    expect(single.find((x) => x.rate === 0.32)?.lower).toBe(201_775);
+    expect(single.find((x) => x.rate === 0.35)?.lower).toBe(256_225);
+    const mfj = CONFIG_2026.federal.brackets.married_joint;
+    expect(mfj.find((x) => x.rate === 0.32)?.lower).toBe(403_550);
+    expect(mfj.find((x) => x.rate === 0.35)?.lower).toBe(512_450);
+    expect(CONFIG_2026.federal.qbi_threshold.single).toBe(201_775);
+    expect(CONFIG_2026.federal.qbi_threshold.married_joint).toBe(403_500);
+  });
 });
 
 describe('state golden cases ($60k single, AGI 55,761.135)', () => {
