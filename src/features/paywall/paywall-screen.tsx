@@ -337,8 +337,8 @@ function PlanCard({
         <View style={styles.planRight}>
           <ThemedText variant="sectionHeader">{price}</ThemedText>
           {badge && (
-            <View style={[styles.badge, { backgroundColor: theme.primaryTint }]}>
-              <ThemedText variant="caption" color="primary" style={styles.badgeText}>
+            <View style={[styles.badge, { backgroundColor: theme.primary }]}>
+              <ThemedText variant="caption" style={[styles.badgeText, styles.badgeTextOnFill]}>
                 {badge}
               </ThemedText>
             </View>
@@ -349,7 +349,8 @@ function PlanCard({
   );
 }
 
-/** "Save 40%" badge for the annual plan vs 12× the monthly price, when both exist. */
+/** "Save 48%" badge for the annual plan vs 12× the monthly price, when both exist.
+ *  Computed live from the App Store prices ($7.99/mo + $49.99/yr → Save 48%). */
 function savingsBadge(
   annual: PurchasesPackage | null,
   monthly: PurchasesPackage | null,
@@ -436,8 +437,9 @@ const styles = StyleSheet.create({
   },
   planMain: { flex: 1, gap: 2 },
   planRight: { alignItems: 'flex-end', gap: 4 },
-  badge: { paddingHorizontal: Spacing.sm, paddingVertical: 1, borderRadius: Radius.pill },
-  badgeText: { fontWeight: '700' },
+  badge: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.pill },
+  badgeText: { fontWeight: '800', letterSpacing: 0.2 },
+  badgeTextOnFill: { color: '#FFFFFF' },
   footer: { paddingHorizontal: ScreenPadding, paddingTop: Spacing.sm, gap: Spacing.sm },
   footerLinks: {
     flexDirection: 'row',

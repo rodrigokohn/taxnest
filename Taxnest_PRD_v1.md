@@ -1,4 +1,4 @@
-# FreelanceTax — Especificação Completa de Produto (PRD v1)
+# Taxnest — Especificação Completa de Produto (PRD v1)
 
 > **Como usar este documento:** Este é um spec completo para construir o app do zero. Entregue-o a uma IA de codificação (Claude Code, Cursor, etc.). Toda a prosa explicativa está em português para você ler e editar. **Todo texto de interface (UI copy), nomes de campos, variáveis e código devem permanecer em inglês**, porque o app é para o mercado dos EUA. Os valores fiscais citados são de referência (ano-base 2025) e em produção são buscados dinamicamente pela camada de IA — não os trate como fixos.
 
@@ -6,7 +6,7 @@
 
 ## 0. Instrução-mestra para a IA construtora
 
-Você vai construir um app mobile de **iOS (apenas iOS no MVP)** chamado **FreelanceTax**. É um app freemium de cálculo fiscal para freelancers americanos. O objetivo central do produto: **dizer ao usuário exatamente quanto dinheiro separar de cada pagamento que ele recebe, para que ele nunca seja pego de surpresa pela conta de imposto no fim do ano.**
+Você vai construir um app mobile de **iOS (apenas iOS no MVP)** chamado **Taxnest**. É um app de assinatura de cálculo fiscal para freelancers americanos. O objetivo central do produto: **dizer ao usuário exatamente quanto dinheiro separar de cada pagamento que ele recebe, para que ele nunca seja pego de surpresa pela conta de imposto no fim do ano.**
 
 Princípios inegociáveis de engenharia:
 
@@ -22,10 +22,10 @@ Leia o documento inteiro antes de começar. Construa na ordem do roadmap (Seçã
 
 ## 1. Visão geral do produto
 
-**Nome provisório:** FreelanceTax
+**Nome:** Taxnest
 **Plataforma MVP:** iOS (iPhone), App Store EUA
 **Categoria App Store:** Finance
-**Modelo:** Freemium com assinatura (RevenueCat)
+**Modelo:** Assinatura (RevenueCat) — sem tier gratuito
 **Mercado:** Estados Unidos
 
 **One-liner:** "Know exactly how much to set aside from every payment — before tax season catches you off guard."
@@ -34,7 +34,7 @@ Leia o documento inteiro antes de começar. Construa na ordem do roadmap (Seçã
 
 **A solução:** Um app que, a cada pagamento recebido, diz instantaneamente quanto separar. Acompanha as fontes de renda ao longo do ano, projeta a conta total, lembra dos prazos trimestrais e gera um relatório pronto para o contador.
 
-**Diferencial central (posicionamento):** Todos os concorrentes são **reativos** — resolvem o imposto depois, na declaração anual (TurboTax, H&R Block) ou são ferramentas de contabilidade caras e complexas (QuickBooks). O FreelanceTax é **proativo**: resolve no momento em que o dinheiro entra. Esse é o gancho de marketing, da App Store description ao criativo de anúncio.
+**Diferencial central (posicionamento):** Todos os concorrentes são **reativos** — resolvem o imposto depois, na declaração anual (TurboTax, H&R Block) ou são ferramentas de contabilidade caras e complexas (QuickBooks). O Taxnest é **proativo**: resolve no momento em que o dinheiro entra. Esse é o gancho de marketing, da App Store description ao criativo de anúncio.
 
 ---
 
@@ -588,7 +588,7 @@ Sequência de telas curtas:
 3. **State** — picker de estado (lista de 50 + DC). Se o estado não tem imposto de renda, mostrar microcopy: "Good news — [State] has no state income tax."
 4. **Income estimate** — "Roughly how much do you expect to make this year from freelancing?" Slider ou input com faixas. Usado para a primeira projeção; ajustável depois.
 5. **(Opcional) Prior year** — "Did you file taxes as a freelancer last year?" Se sim, pede prior_year_tax e prior_year_agi (para safe harbor). Skippable.
-6. **Disclaimer** — tela curta: "FreelanceTax provides estimates to help you plan. It is not tax advice and does not replace a tax professional." Botão "I understand".
+6. **Disclaimer** — tela curta: "Taxnest provides estimates to help you plan. It is not tax advice and does not replace a tax professional." Botão "I understand".
 7. **Notification permission** — "Want reminders before each quarterly deadline?" → solicita permissão de push.
 
 Ao fim, cria o `UserProfile`, baixa o `TaxConfig` do ano vigente, vai para o Dashboard.
@@ -970,7 +970,7 @@ Implementar tudo via **RevenueCat entitlements** (entitlement `pro`).
 
 ## 13. Requisitos legais e de App Store
 
-- **Disclaimer obrigatório**, exibido no onboarding e acessível em Settings, e no rodapé de toda saída de IA: _"FreelanceTax provides estimates for planning purposes only. It is not tax, legal, or financial advice and does not replace a licensed tax professional."_
+- **Disclaimer obrigatório**, exibido no onboarding e acessível em Settings, e no rodapé de toda saída de IA: _"Taxnest provides estimates for planning purposes only. It is not tax, legal, or financial advice and does not replace a licensed tax professional."_
 - **Não** prometer precisão ("guaranteed", "exact refund") em nenhuma copy — usar "estimate", "projection", "helps you plan".
 - Política de privacidade pública (URL) e descrição honesta de coleta de dados (App Privacy "nutrition label" da App Store). Dados financeiros: declarar que ficam no dispositivo; sync é opt-in e criptografado.
 - App Store category: Finance. Estar preparado para a possibilidade de a review pedir esclarecimentos sobre o disclaimer — tê-lo visível ajuda a passar.

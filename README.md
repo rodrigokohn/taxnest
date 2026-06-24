@@ -1,13 +1,13 @@
-# FreelanceTax
+# Taxnest
 
 > Know exactly how much to set aside from every payment — before tax season
 > catches you off guard.
 
-A freemium iOS app that tells US freelancers how much to set aside from each
+A subscription iOS app that tells US freelancers how much to set aside from each
 payment they receive, tracks income across the year, projects the annual bill,
 reminds them of quarterly deadlines, and produces an accountant-ready report.
 
-- **Spec:** [`FreelanceTax_PRD_v1.md`](./FreelanceTax_PRD_v1.md)
+- **Spec:** [`Taxnest_PRD_v1.md`](./Taxnest_PRD_v1.md)
 - **Architecture:** [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
 
 ## Stack

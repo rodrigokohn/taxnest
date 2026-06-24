@@ -1,6 +1,6 @@
-# FreelanceTax — Architecture
+# Taxnest — Architecture
 
-> Companion to `FreelanceTax_PRD_v1.md`. This file documents _how_ the codebase
+> Companion to `Taxnest_PRD_v1.md`. This file documents _how_ the codebase
 > is laid out and the one non-negotiable rule that shapes everything.
 
 ## The core rule: the money math is code, never AI
