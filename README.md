@@ -13,7 +13,8 @@ reminds them of quarterly deadlines, and produces an accountant-ready report.
 ## Stack
 
 Expo SDK 56 · React Native 0.85 · React 19 · TypeScript (strict) · Expo Router ·
-Zustand · expo-sqlite · RevenueCat · Anthropic API (server-side only).
+Zustand · expo-sqlite · Supabase (auth + Edge Functions) · RevenueCat · OpenAI
+API (server-side only).
 
 ## Getting started
 

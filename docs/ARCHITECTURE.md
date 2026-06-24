@@ -13,7 +13,7 @@ There are two deliberately decoupled planes:
    AI. 100% unit-tested against the known cases in PRD §6.8.
 2. **AI plane** — touches the system in exactly two narrow places, neither of
    which computes a tax number:
-   - **Write (≈1×/year):** `POST /ai/refresh-config` uses Claude + web search on
+   - **Write (≈1×/year):** `POST /ai/refresh-config` uses OpenAI + web search on
      `irs.gov` to _extract_ the year's raw numbers, returns strict JSON, which a
      **deterministic validation gate** checks before it is allowed to become a
      `TaxConfig`. The AI proposes data; code disposes. Validation failure ⇒ the
@@ -43,7 +43,7 @@ src/
   design/              Design tokens: colors, typography, spacing, theme
   services/            External clients (api, notifications, revenuecat, analytics)
   lib/                 Pure utils (money formatting, dates)
-  config/              Env, constants, Free/Pro gating
+  config/              Env, constants, subscription gating
 backend/               Supabase: tax-config delivery + AI proxy (added in Phase 3)
 docs/                  This file + PRD
 ```
@@ -60,7 +60,7 @@ portable (future Android) and testable in plain Node.
 
 ## Build order (see PRD §14)
 
-0. Skeleton & foundation ← _current_
+0. Skeleton & foundation
 1. Data model & persistence
 2. TaxEngine + tests (**the gate** — no UI depends on the engine until tests pass)
 3. Light backend (Supabase)
@@ -77,5 +77,6 @@ portable (future Android) and testable in plain Node.
   (snapshot) and `projectAnnual(...)` (live) as distinct operations.
 - **Cloud sync deferred** to post-launch; MVP is local-first (SQLite only).
 - **Stack:** Expo SDK 56 / React Native 0.85 / React 19 / TypeScript (strict),
-  Expo Router, Zustand, RevenueCat. Per `AGENTS.md`, check the versioned Expo
+  Expo Router, Zustand, expo-sqlite, Supabase (auth + Edge Functions),
+  RevenueCat, OpenAI (server-side). Per `AGENTS.md`, check the versioned Expo
   docs before writing version-sensitive code.

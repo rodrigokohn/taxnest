@@ -117,13 +117,13 @@ Por quê, mesmo sendo iOS-first:
 | Sync opcional (Pro) | Supabase (Postgres + Auth + Row Level Security)                 | Criptografado; opt-in                               |
 | Assinaturas         | RevenueCat SDK                                                  | Paywall, entitlements, trials                       |
 | Push notifications  | Expo Notifications                                              | Lembretes de prazo                                  |
-| Camada de IA        | Anthropic API (server-side, ver Seção 9)                        | Nunca chamar a API direto do app com chave embutida |
+| Camada de IA        | OpenAI API (server-side, ver Seção 9)                        | Nunca chamar a API direto do app com chave embutida |
 | Backend leve        | Supabase Edge Functions (Deno) ou um pequeno serviço serverless | Proxy da API de IA + entrega do TaxConfig           |
 | Analytics           | PostHog ou Amplitude                                            | Eventos da Seção 13                                 |
 | Geração de PDF      | `expo-print` + template HTML                                    | Relatório do contador                               |
 | Crash reporting     | Sentry                                                          |                                                     |
 
-**Regra de segurança crítica:** A chave da API da Anthropic **nunca** vai no app cliente. Toda chamada de IA passa por um endpoint backend (Supabase Edge Function ou serverless) que guarda a chave como variável de ambiente. O app fala com o seu backend; o backend fala com a Anthropic.
+**Regra de segurança crítica:** A chave da API da OpenAI **nunca** vai no app cliente. Toda chamada de IA passa por um endpoint backend (Supabase Edge Function ou serverless) que guarda a chave como variável de ambiente. O app fala com o seu backend; o backend fala com a OpenAI.
 
 ---
 
@@ -151,11 +151,11 @@ Por quê, mesmo sendo iOS-first:
 │  GET /tax-config/:year  ──► retorna TaxConfig em cache   │
 │                                                          │
 │  POST /ai/refresh-config ──► job anual:                  │
-│        Anthropic API + web search (irs.gov)              │
+│        OpenAI API + web search (irs.gov)              │
 │        ──► extrai valores ──► valida ──► salva TaxConfig  │
 │                                                          │
 │  POST /ai/ask  ──► Q&A fiscal contextual (Pro)           │
-│        Anthropic API, recebe contexto do cálculo         │
+│        OpenAI API, recebe contexto do cálculo         │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -873,9 +873,9 @@ Agrupado em seções nativas (estilo iOS Settings):
 
 ## 9. Integração com IA
 
-> Toda chamada de IA é **server-side**. A chave da Anthropic fica no backend. O app nunca embute a chave.
+> Toda chamada de IA é **server-side**. A chave da OpenAI fica no backend. O app nunca embute a chave.
 
-Referência oficial da API: https://docs.claude.com/en/api/overview — consulte para os detalhes atuais de modelos, tool use e do web search tool (os parâmetros podem mudar; verifique a doc na hora de implementar).
+Referência oficial da API: https://platform.openai.com/docs — consulte para os detalhes atuais de modelos, function calling e da web search tool (os parâmetros podem mudar; verifique a doc na hora de implementar).
 
 ### 9.1 Job anual: atualizar o TaxConfig
 
@@ -883,13 +883,13 @@ Referência oficial da API: https://docs.claude.com/en/api/overview — consulte
 
 Lógica:
 
-1. Chamar a API da Anthropic com o **web search tool habilitado**.
+1. Chamar a API da OpenAI com o **web search tool habilitado**.
 2. Prompt instrui a buscar **exclusivamente em irs.gov** os valores do ano fiscal alvo: standard deduction por filing status, brackets federais por filing status, Social Security wage base, thresholds de Additional Medicare, QBI threshold, e os 4 quarterly deadlines.
 3. Instruir o modelo a **retornar apenas JSON** no formato do `TaxConfig` (sem prosa, sem markdown).
 4. **Validar** o JSON retornado antes de salvar: checagens de sanidade (alíquotas entre 0 e 1, brackets monotônicos crescentes, wage base num intervalo plausível, deadlines no ano correto). Se a validação falhar, **não** sobrescrever o config vigente; logar e alertar.
 5. Salvar `source_urls` retornadas para auditoria.
 
-Modelo sugerido: um modelo da família atual (ex.: Claude Sonnet) é suficiente para esta tarefa de extração estruturada. Como roda raramente (≈1×/ano + tentativas), custo é desprezível.
+Modelo sugerido: um modelo da família atual (ex.: GPT-5) é suficiente para esta tarefa de extração estruturada. Como roda raramente (≈1×/ano + tentativas), custo é desprezível.
 
 **Prompt-base do job (em inglês, para a API):**
 
@@ -921,7 +921,7 @@ irs.gov, set it to null — never guess.
 **Endpoint:** `POST /ai/ask`
 
 - Recebe a pergunta do usuário + contexto numérico anonimizado (renda projetada, estado, filing status, total separado — **sem** nome, email ou identificadores).
-- Chama a API da Anthropic com um system prompt que: (a) responde dúvidas fiscais gerais de freelancers dos EUA, (b) usa o contexto para personalizar, (c) **sempre** inclui o disclaimer de que é informação geral e não substitui um profissional, (d) recusa-se a dar conselho que dependa de circunstâncias que não conhece, recomendando um CPA.
+- Chama a API da OpenAI com um system prompt que: (a) responde dúvidas fiscais gerais de freelancers dos EUA, (b) usa o contexto para personalizar, (c) **sempre** inclui o disclaimer de que é informação geral e não substitui um profissional, (d) recusa-se a dar conselho que dependa de circunstâncias que não conhece, recomendando um CPA.
 - Aplicar rate limit por usuário.
 
 ### 9.3 Controle de custo
