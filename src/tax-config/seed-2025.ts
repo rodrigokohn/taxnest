@@ -142,6 +142,11 @@ export const SEED_TAX_CONFIG_2025 = {
         { lower: 10_000, upper: TOP, rate: 0.044 },
       ],
     },
+    // California doubles its single brackets AND standard deduction for married
+    // filing jointly (no marriage penalty) — verified 2024 CA schedule. Other
+    // statuses fall back to the single values. This is the single largest
+    // per-filing-status correction (#24): without it, married CA filers are
+    // materially over-estimated (the safe direction, but inaccurate).
     CA: {
       type: 'progressive',
       standard_deduction: 5_540,
@@ -156,6 +161,20 @@ export const SEED_TAX_CONFIG_2025 = {
         { lower: 418_961, upper: 698_271, rate: 0.113 },
         { lower: 698_271, upper: TOP, rate: 0.123 },
       ],
+      standard_deduction_by_status: { married_joint: 11_080 },
+      brackets_by_status: {
+        married_joint: [
+          { lower: 0, upper: 20_824, rate: 0.01 },
+          { lower: 20_824, upper: 49_368, rate: 0.02 },
+          { lower: 49_368, upper: 77_918, rate: 0.04 },
+          { lower: 77_918, upper: 108_162, rate: 0.06 },
+          { lower: 108_162, upper: 136_700, rate: 0.08 },
+          { lower: 136_700, upper: 698_274, rate: 0.093 },
+          { lower: 698_274, upper: 837_922, rate: 0.103 },
+          { lower: 837_922, upper: 1_396_542, rate: 0.113 },
+          { lower: 1_396_542, upper: TOP, rate: 0.123 },
+        ],
+      },
     },
     NY: {
       type: 'progressive',

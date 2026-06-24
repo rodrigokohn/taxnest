@@ -19,10 +19,27 @@ export type Bracket = {
   rate: number;
 };
 
+/**
+ * Per-filing-status overrides for a state. Optional and partial: any status not
+ * listed falls back to the base `brackets` / `standard_deduction` (the
+ * single-filer values). This keeps every existing state working unchanged while
+ * letting verified states refine the math for married/HoH filers (PRD §6.4).
+ */
 export type StateConfig =
   | { type: 'none' }
-  | { type: 'flat'; rate: number; standard_deduction: number }
-  | { type: 'progressive'; brackets: Bracket[]; standard_deduction: number };
+  | {
+      type: 'flat';
+      rate: number;
+      standard_deduction: number;
+      standard_deduction_by_status?: Partial<Record<FilingStatus, number>>;
+    }
+  | {
+      type: 'progressive';
+      brackets: Bracket[];
+      standard_deduction: number;
+      brackets_by_status?: Partial<Record<FilingStatus, Bracket[]>>;
+      standard_deduction_by_status?: Partial<Record<FilingStatus, number>>;
+    };
 
 export type SelfEmploymentConfig = {
   social_security_wage_base: number; // ref 2025: 176_100

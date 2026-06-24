@@ -24,7 +24,7 @@ export function computeAnnualTax(input: TaxInput, config: TaxConfig): TaxBreakdo
     federal: config.federal,
   });
 
-  const state = computeStateTax(federal.agi, input.state, config.states);
+  const state = computeStateTax(federal.agi, input.state, config.states, input.filing_status);
 
   const totalAnnualTax = se.seTax + federal.federalIncomeTax + state.stateTax;
 

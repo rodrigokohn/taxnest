@@ -1,4 +1,4 @@
-import { type StateCode } from '@/domain';
+import { type FilingStatus, type StateCode } from '@/domain';
 import { type StateConfig } from '@/tax-config/types';
 
 import { applyProgressiveBrackets } from '@/tax-engine/brackets';
@@ -11,20 +11,26 @@ export type StateResult = {
 
 /**
  * State income tax (PRD §6.4). Approximation: starts from federal AGI minus a
- * per-state standard deduction. State rules vary; the UI shows a disclaimer.
+ * per-state standard deduction. Uses the filing-status-specific brackets and
+ * standard deduction when the state provides them, else the base (single)
+ * values. State rules vary; the UI shows a disclaimer.
  */
 export function computeStateTax(
   agi: number,
   state: StateCode,
   states: Record<string, StateConfig>,
+  filingStatus: FilingStatus,
 ): StateResult {
   const config = states[state];
   if (!config) return { stateTax: 0, supported: false };
   if (config.type === 'none') return { stateTax: 0, supported: true };
 
-  const stateTaxable = Math.max(0, agi - config.standard_deduction);
+  const standardDeduction =
+    config.standard_deduction_by_status?.[filingStatus] ?? config.standard_deduction;
+  const stateTaxable = Math.max(0, agi - standardDeduction);
   if (config.type === 'flat') {
     return { stateTax: stateTaxable * config.rate, supported: true };
   }
-  return { stateTax: applyProgressiveBrackets(stateTaxable, config.brackets), supported: true };
+  const brackets = config.brackets_by_status?.[filingStatus] ?? config.brackets;
+  return { stateTax: applyProgressiveBrackets(stateTaxable, brackets), supported: true };
 }

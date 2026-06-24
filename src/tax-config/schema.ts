@@ -23,6 +23,17 @@ function filingStatusRecord<T extends z.ZodTypeAny>(value: T) {
   });
 }
 
+/** Like {@link filingStatusRecord} but every status is optional (per-state
+ * overrides — any missing status falls back to the base single-filer value). */
+function partialFilingStatusRecord<T extends z.ZodTypeAny>(value: T) {
+  return z.object({
+    single: value.optional(),
+    married_joint: value.optional(),
+    married_separate: value.optional(),
+    head_of_household: value.optional(),
+  });
+}
+
 const bracketSchema = z.object({
   lower: z.number().min(0),
   upper: z.union([z.number().min(0), z.null()]),
@@ -48,11 +59,18 @@ const bracketsSchema = z
 
 const stateConfigSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('none') }),
-  z.object({ type: z.literal('flat'), rate, standard_deduction: money }),
+  z.object({
+    type: z.literal('flat'),
+    rate,
+    standard_deduction: money,
+    standard_deduction_by_status: partialFilingStatusRecord(money).optional(),
+  }),
   z.object({
     type: z.literal('progressive'),
     brackets: bracketsSchema,
     standard_deduction: money,
+    brackets_by_status: partialFilingStatusRecord(bracketsSchema).optional(),
+    standard_deduction_by_status: partialFilingStatusRecord(money).optional(),
   }),
 ]);
 

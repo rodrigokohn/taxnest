@@ -363,3 +363,21 @@ describe('§29 authoritative golden — filing statuses & high income (2026)', (
     expect(b.federalIncomeTax).toBeCloseTo(62_724.57, 2);
   });
 });
+
+// Per-filing-status state brackets (#24). California doubles its single brackets
+// + standard deduction for MFJ; the engine must use those, and fall back to the
+// single values for any status the state doesn't override.
+describe('§24 per-filing-status state tax — California (MFJ doubles)', () => {
+  const at = (filing_status: TaxProfile['filing_status'], net_profit: number) =>
+    computeAnnualTax({ filing_status, state: 'CA', net_profit }, CONFIG);
+
+  it('applies the doubled MFJ brackets + deduction (far below the single basis)', () => {
+    expect(at('married_joint', 120_000).stateTax).toBeCloseTo(3_272.58, 2);
+    expect(at('married_joint', 120_000).stateTax).toBeLessThan(at('single', 120_000).stateTax);
+  });
+
+  it('falls back to the single brackets for statuses with no override', () => {
+    // married_separate has no CA override → identical to the single computation.
+    expect(at('married_separate', 120_000).stateTax).toBeCloseTo(at('single', 120_000).stateTax, 6);
+  });
+});
