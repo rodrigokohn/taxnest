@@ -142,8 +142,29 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return jsonResponse({ error: 'method not allowed' }, 405);
 
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const adminSecret = Deno.env.get('REFRESH_ADMIN_SECRET') ?? '';
   const auth = req.headers.get('authorization') ?? '';
-  if (!serviceKey || auth !== `Bearer ${serviceKey}`) {
+  const xAdmin = req.headers.get('x-admin-secret') ?? '';
+
+  // Safe diagnostic (no secrets leaked): POST ...?debug=1 to see why auth fails.
+  if (new URL(req.url).searchParams.get('debug') === '1') {
+    return jsonResponse({
+      hasServiceKey: serviceKey.length > 0,
+      serviceKeyLen: serviceKey.length,
+      hasAdminSecret: adminSecret.length > 0,
+      incomingAuthLen: auth.length,
+      incomingAdminLen: xAdmin.length,
+      bearerMatches: serviceKey.length > 0 && auth === `Bearer ${serviceKey}`,
+      adminMatches: adminSecret.length > 0 && xAdmin === adminSecret,
+    });
+  }
+
+  // Authorize via a dedicated admin secret (the canonical path the cron uses) OR
+  // the injected service-role bearer (fallback when they happen to match).
+  const authorized =
+    (adminSecret.length > 0 && xAdmin === adminSecret) ||
+    (serviceKey.length > 0 && auth === `Bearer ${serviceKey}`);
+  if (!authorized) {
     return jsonResponse({ error: 'admin only' }, 401);
   }
 

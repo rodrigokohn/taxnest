@@ -29,6 +29,9 @@ the OpenAI key once:
 
 ```bash
 supabase secrets set OPENAI_API_KEY=sk-...
+# Admin secret for the refresh job (also stored in Vault as refresh_admin_secret
+# so the cron can send it). Generate once: openssl rand -hex 32
+supabase secrets set REFRESH_ADMIN_SECRET=<random hex>
 # For the one-tap approval email (optional but recommended):
 supabase secrets set RESEND_API_KEY=re_...
 supabase secrets set REFRESH_NOTIFY_EMAIL=support.taxnest@gmail.com
@@ -38,6 +41,12 @@ supabase functions deploy ai-ask
 supabase functions deploy ai-refresh-config --no-verify-jwt
 supabase functions deploy approve-tax-config --no-verify-jwt
 ```
+
+> **Auth:** `ai-refresh-config` is triggered with the header `x-admin-secret:
+> <REFRESH_ADMIN_SECRET>`. (The service-role key Supabase injects into a function
+> doesn't always match the dashboard/Vault key, so a `Bearer <service_role>`
+> check is unreliable — the dedicated secret is the canonical path.) `POST
+> ...?debug=1` returns a no-secrets diagnostic of which keys the function sees.
 
 - **`ai-ask`** — Pro Q&A. Verifies the project JWT (the app's anon key passes;
   becomes the auth user once login lands). Reads anonymized context, returns prose
@@ -66,7 +75,7 @@ Trigger it manually any time (defaults to next year):
 
 ```bash
 curl -X POST "$SUPABASE_URL/functions/v1/ai-refresh-config" \
-  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "x-admin-secret: $REFRESH_ADMIN_SECRET" \
   -H "Content-Type: application/json" \
   -d '{"year": 2027}'
 ```
