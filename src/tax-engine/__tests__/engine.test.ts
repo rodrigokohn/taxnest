@@ -329,3 +329,37 @@ describe('marginalSetAsideBreakdown — components sum to the total', () => {
     expect(b.state).toBeGreaterThan(0); // CA is supported
   });
 });
+
+// Coverage for the non-single filing statuses + the high-income paths the
+// single-filer cases never reach (MFJ/HoH brackets, SS wage-base cap, additional
+// Medicare, QBI disallowed above the threshold). Values hand-computed from the
+// verified 2026 seed via Schedule SE + the progressive brackets + §199A.
+describe('§29 authoritative golden — filing statuses & high income (2026)', () => {
+  const at = (filing_status: TaxProfile['filing_status'], net_profit: number) =>
+    computeAnnualTax({ filing_status, state: 'TX', net_profit }, CONFIG_2026);
+
+  it('MFJ $150k: SS uncapped, no additional Medicare, MFJ brackets + QBI', () => {
+    const b = at('married_joint', 150_000);
+    expect(b.se.socialSecurity).toBeCloseTo(17_177.1, 2);
+    expect(b.se.additionalMedicare).toBe(0); // NESE 138,525 < 250k MFJ threshold
+    expect(b.se.seTax).toBeCloseTo(21_194.32, 2);
+    expect(b.qbiDeduction).toBeCloseTo(21_440.568, 2);
+    expect(b.federalIncomeTax).toBeCloseTo(9_795.47, 2);
+  });
+
+  it('HoH $90k: HoH brackets + standard deduction + QBI', () => {
+    const b = at('head_of_household', 90_000);
+    expect(b.se.seTax).toBeCloseTo(12_716.6, 2);
+    expect(b.qbiDeduction).toBeCloseTo(11_898.341, 2);
+    expect(b.federalIncomeTax).toBeCloseTo(5_357.2, 2);
+  });
+
+  it('Single $300k: SS capped at the wage base, additional Medicare, QBI disallowed', () => {
+    const b = at('single', 300_000);
+    expect(b.se.socialSecurity).toBeCloseTo(22_878, 2); // 184,500 wage base × 12.4%
+    expect(b.se.additionalMedicare).toBeCloseTo(693.45, 2); // (277,050 − 200k) × 0.9%
+    expect(b.se.seTax).toBeCloseTo(31_605.9, 2);
+    expect(b.qbiDeduction).toBe(0); // taxable income > the $201,775 QBI threshold
+    expect(b.federalIncomeTax).toBeCloseTo(62_724.57, 2);
+  });
+});
