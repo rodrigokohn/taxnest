@@ -2,8 +2,8 @@ import { type CustomerInfo } from 'react-native-purchases';
 import { create } from 'zustand';
 
 /**
- * App access gating. Subscription-only (supersedes the tiered model in PRD §11): after a
- * 30-day free trial the whole app sits behind a subscription. RevenueCat's `pro`
+ * App access gating. Subscription-only (supersedes the tiered model in PRD §11): after the
+ * free trial the whole app sits behind a subscription. RevenueCat's `pro`
  * entitlement is the source of truth — active during the trial too — and screens
  * keep consulting {@link useIsPro} unchanged.
  */

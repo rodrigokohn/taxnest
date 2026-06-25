@@ -19,6 +19,7 @@ import { isProNow, useEntitlementStore } from '@/config/gating';
 import { PRIVACY_URL, TERMS_URL } from '@/config/legal';
 import { Radius, ScreenPadding, Spacing, useTheme } from '@/design';
 import {
+  freeTrialDuration,
   freeTrialLabel,
   getSubscriptionPackages,
   isUserCancelled,
@@ -86,6 +87,7 @@ export function PaywallScreen() {
 
   const pkg = selected === 'annual' ? annual : monthly;
   const trial = pkg ? freeTrialLabel(pkg) : null;
+  const trialDuration = pkg ? freeTrialDuration(pkg) : null;
 
   async function startTrial() {
     if (!pkg) return;
@@ -124,7 +126,7 @@ export function PaywallScreen() {
   }
 
   const hasPlans = Boolean(annual || monthly);
-  const ctaLabel = trial ? 'Try it free for 30 days' : 'Subscribe';
+  const ctaLabel = trialDuration ? `Try it free for ${trialDuration}` : 'Subscribe';
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>

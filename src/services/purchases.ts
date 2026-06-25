@@ -74,9 +74,17 @@ export function isUserCancelled(err: unknown): boolean {
   return Boolean((err as { userCancelled?: boolean })?.userCancelled);
 }
 
-/** "30-day free trial"-style label from a package's intro offer, when it's actually free. */
+/** "14-day free trial"-style label from a package's intro offer, when it's actually free. */
 export function freeTrialLabel(pkg: PurchasesPackage): string | null {
   const intro = pkg.product.introPrice;
   if (!intro || intro.price > 0) return null;
   return `${intro.periodNumberOfUnits}-${intro.periodUnit.toLowerCase()} free trial`;
+}
+
+/** "14 days"-style duration phrase from a package's free intro offer, when present. */
+export function freeTrialDuration(pkg: PurchasesPackage): string | null {
+  const intro = pkg.product.introPrice;
+  if (!intro || intro.price > 0) return null;
+  const n = intro.periodNumberOfUnits;
+  return `${n} ${intro.periodUnit.toLowerCase()}${n === 1 ? '' : 's'}`;
 }
