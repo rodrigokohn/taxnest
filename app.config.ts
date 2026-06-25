@@ -24,7 +24,7 @@ const config: ExpoConfig = {
     },
     supportsTablet: false,
     bundleIdentifier: 'com.rodrigokohn.freelancetax',
-    buildNumber: '2',
+    buildNumber: '3',
     usesAppleSignIn: true,
     // The app only uses standard HTTPS/TLS (exempt) — declare it so the App Store
     // upload doesn't ask the export-compliance question on every build.
