@@ -61,6 +61,7 @@ const config: ExpoConfig = {
     'expo-apple-authentication',
     ['@react-native-google-signin/google-signin', { iosUrlScheme: googleIosUrlScheme }],
     './plugins/with-modular-headers',
+    './plugins/with-precompiled-modules-disabled',
   ],
   experiments: {
     typedRoutes: true,
