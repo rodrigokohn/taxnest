@@ -74,17 +74,29 @@ export function isUserCancelled(err: unknown): boolean {
   return Boolean((err as { userCancelled?: boolean })?.userCancelled);
 }
 
-/** "14-day free trial"-style label from a package's intro offer, when it's actually free. */
-export function freeTrialLabel(pkg: PurchasesPackage): string | null {
+/** Free intro period of a package, when it's actually free (price 0), else null.
+ *  Apple has no "14 days" option — it models that as 2 weeks (P2W). We expand weeks
+ *  into days so a 2-week trial reads as "14 days" rather than "2 weeks". */
+function freeIntroPeriod(pkg: PurchasesPackage): { units: number; unit: string } | null {
   const intro = pkg.product.introPrice;
   if (!intro || intro.price > 0) return null;
-  return `${intro.periodNumberOfUnits}-${intro.periodUnit.toLowerCase()} free trial`;
+  let units = intro.periodNumberOfUnits;
+  let unit = intro.periodUnit.toLowerCase(); // 'day' | 'week' | 'month' | 'year'
+  if (unit === 'week') {
+    units *= 7;
+    unit = 'day';
+  }
+  return { units, unit };
+}
+
+/** "14-day free trial"-style label from a package's intro offer, when it's actually free. */
+export function freeTrialLabel(pkg: PurchasesPackage): string | null {
+  const p = freeIntroPeriod(pkg);
+  return p ? `${p.units}-${p.unit} free trial` : null;
 }
 
 /** "14 days"-style duration phrase from a package's free intro offer, when present. */
 export function freeTrialDuration(pkg: PurchasesPackage): string | null {
-  const intro = pkg.product.introPrice;
-  if (!intro || intro.price > 0) return null;
-  const n = intro.periodNumberOfUnits;
-  return `${n} ${intro.periodUnit.toLowerCase()}${n === 1 ? '' : 's'}`;
+  const p = freeIntroPeriod(pkg);
+  return p ? `${p.units} ${p.unit}${p.units === 1 ? '' : 's'}` : null;
 }
