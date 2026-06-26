@@ -37,6 +37,14 @@ export default function HomeScreen() {
   const total = data?.totalSetAside ?? 0;
   const heroValue = useCountUp(total);
 
+  // Open a More-section page from the dashboard, routing visually "through" the
+  // More tab: switch to More first, then push the detail a beat later so the tab
+  // is briefly visible and the page's Back button returns to More (not Home).
+  const openViaMore = (href: '/deductions' | '/reports') => {
+    router.navigate('/(tabs)/more');
+    setTimeout(() => router.push(href), 200);
+  };
+
   // Celebrate a savings milestone once per year (the first time it's reached).
   useEffect(() => {
     let cancelled = false;
@@ -163,12 +171,12 @@ export default function HomeScreen() {
           <EntryCard
             title="Deductions"
             icon="tag.fill"
-            onPress={() => router.navigate('/(tabs)/more')}
+            onPress={() => openViaMore('/deductions')}
           />
           <EntryCard
             title="Reports"
             icon="doc.text.fill"
-            onPress={() => router.navigate('/(tabs)/more')}
+            onPress={() => openViaMore('/reports')}
           />
         </AnimatedEntrance>
 

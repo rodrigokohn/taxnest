@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -289,6 +290,10 @@ export function OnboardingWizard() {
                       label="Your AGI last year"
                       value={draft.prior_year_agi ?? 0}
                       onChange={(v) => set({ prior_year_agi: v })}
+                      help={{
+                        title: "What's AGI?",
+                        body: "Your Adjusted Gross Income — total income minus certain adjustments. You'll find it on line 11 of last year's Form 1040. We use it only to check if you qualify for safe-harbor penalty protection.",
+                      }}
                     />
                     <Button title="Continue" onPress={goNext} />
                   </Animated.View>
@@ -491,17 +496,33 @@ function LabeledMoney({
   label,
   value,
   onChange,
+  help,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
+  help?: { title: string; body: string };
 }) {
   const theme = useTheme();
   return (
     <View style={styles.labeledField}>
-      <ThemedText variant="secondary" color="textSecondary">
-        {label}
-      </ThemedText>
+      <View style={styles.labelRow}>
+        <ThemedText variant="secondary" color="textSecondary">
+          {label}
+        </ThemedText>
+        {help && (
+          <Pressable
+            onPress={() => {
+              haptics.light();
+              Alert.alert(help.title, help.body);
+            }}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={help.title}>
+            <IconSymbol name="questionmark.circle" color={theme.textTertiary} size={18} />
+          </Pressable>
+        )}
+      </View>
       <View style={[styles.fieldBox, { borderColor: theme.border }]}>
         <ThemedText variant="body" color="textSecondary">
           $
@@ -720,6 +741,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   labeledField: { gap: Spacing.xs },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   fieldBox: {
     flexDirection: 'row',
     alignItems: 'center',

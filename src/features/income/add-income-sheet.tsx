@@ -122,7 +122,9 @@ export function AddIncomeSheet() {
     haptics.success(); // the "set aside" moment (PRD §8.3)
   }
 
-  async function done() {
+  /** Persist the current entry. Shared by "Done" and "Add another" so neither
+   * path can silently drop a payment. */
+  async function persist() {
     const source = await incomeSourceRepo.ensureDefault();
     await usePaymentsStore.getState().add({
       income_source_id: source.id,
@@ -132,10 +134,15 @@ export function AddIncomeSheet() {
       note: note.trim() || undefined,
       tax_year: taxYear,
     });
+  }
+
+  async function done() {
+    await persist();
     router.navigate('/');
   }
 
-  function addAnother() {
+  async function addAnother() {
+    await persist();
     setAmountText('');
     setNote('');
     setShowNote(false);
