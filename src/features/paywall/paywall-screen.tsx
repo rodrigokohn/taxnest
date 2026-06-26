@@ -117,6 +117,24 @@ export function PaywallScreen() {
     }
   }
 
+  function onResetQuiz() {
+    Alert.alert(
+      'Reset quiz?',
+      'This clears your saved answers and takes you back through the onboarding questions.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          // Clearing the profile flips the root gate back to onboarding.
+          text: 'Reset',
+          style: 'destructive',
+          onPress: () => {
+            void useProfileStore.getState().clear();
+          },
+        },
+      ],
+    );
+  }
+
   if (loading) {
     return (
       <View style={[styles.fill, styles.center, { backgroundColor: theme.background }]}>
@@ -236,6 +254,14 @@ export function PaywallScreen() {
             <Pressable onPress={() => Linking.openURL(PRIVACY_URL)} accessibilityRole="link">
               <ThemedText variant="caption" color="textTertiary">
                 Privacy
+              </ThemedText>
+            </Pressable>
+            <ThemedText variant="caption" color="textTertiary">
+              ·
+            </ThemedText>
+            <Pressable onPress={onResetQuiz} accessibilityRole="button">
+              <ThemedText variant="caption" color="textTertiary">
+                Reset quiz
               </ThemedText>
             </Pressable>
           </View>
@@ -445,6 +471,7 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: ScreenPadding, paddingTop: Spacing.sm, gap: Spacing.sm },
   footerLinks: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.sm,

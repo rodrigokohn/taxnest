@@ -7,7 +7,7 @@ import { AppState } from 'react-native';
 import { env } from '@/config/env';
 
 /**
- * Supabase client — TaxConfig delivery and (soon) Google/Apple auth sessions.
+ * Supabase client — Apple auth sessions, TaxConfig delivery, and per-user data sync.
  * Placeholder values keep `createClient` from throwing when `.env` is missing;
  * callers guard real usage with `env.hasSupabase`.
  */

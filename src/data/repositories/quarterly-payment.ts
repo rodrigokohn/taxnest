@@ -1,4 +1,5 @@
 import { getDb } from '@/data/db';
+import { syncUpsert } from '@/data/sync';
 import { type Quarter, type QuarterlyPayment } from '@/domain';
 import { newId } from '@/lib/id';
 
@@ -37,6 +38,7 @@ export const quarterlyPaymentRepo = {
       amountPaid,
       datePaid,
     );
+    await this.syncRow(taxYear, quarter);
   },
 
   /** Reverse a "mark as paid". */
@@ -46,5 +48,16 @@ export const quarterlyPaymentRepo = {
       taxYear,
       quarter,
     );
+    await this.syncRow(taxYear, quarter);
+  },
+
+  /** Push the row for a (year, quarter) to the cloud — the id is the on-conflict winner. */
+  async syncRow(taxYear: number, quarter: Quarter): Promise<void> {
+    const row = await getDb().getFirstAsync<{ id: string }>(
+      'SELECT id FROM quarterly_payment WHERE tax_year = ? AND quarter = ?',
+      taxYear,
+      quarter,
+    );
+    if (row) syncUpsert('quarterly_payment', row.id);
   },
 };

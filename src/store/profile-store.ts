@@ -11,6 +11,8 @@ type ProfileState = {
   update: (patch: Partial<UserProfile>) => Promise<void>;
   /** DEV: drop the in-memory profile so the gate re-shows onboarding (until reload). */
   reset: () => void;
+  /** Persistently wipe the profile (local + cloud) and re-show onboarding. */
+  clear: () => Promise<void>;
 };
 
 export const useProfileStore = create<ProfileState>()((set, get) => ({
@@ -40,6 +42,11 @@ export const useProfileStore = create<ProfileState>()((set, get) => ({
   },
 
   reset() {
+    set({ profile: null });
+  },
+
+  async clear() {
+    await userProfileRepo.clear();
     set({ profile: null });
   },
 }));

@@ -1,4 +1,5 @@
 import { getDb } from '@/data/db';
+import { syncDelete, syncUpsert } from '@/data/sync';
 import { type Payment } from '@/domain';
 import { newId } from '@/lib/id';
 
@@ -38,6 +39,7 @@ export const paymentRepo = {
       payment.tax_year,
       payment.created_at,
     );
+    syncUpsert('payment', payment.id);
     return payment;
   },
 
@@ -50,10 +52,12 @@ export const paymentRepo = {
       ...entries.map(([k, v]) => (k === 'note' ? (v ?? null) : v) as string | number | null),
       id,
     );
+    syncUpsert('payment', id);
   },
 
   async remove(id: string): Promise<void> {
     await getDb().runAsync('DELETE FROM payment WHERE id = ?', id);
+    syncDelete('payment', id);
   },
 
   async sumSetAsideByYear(taxYear: number): Promise<number> {

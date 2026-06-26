@@ -1,12 +1,5 @@
 import { type ExpoConfig } from 'expo/config';
 
-// The Google iOS URL scheme is the reversed iOS client ID. Derive it from the
-// env var so there's a single source of truth (.env) and no manual editing.
-const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '';
-const googleIosUrlScheme = iosClientId
-  ? `com.googleusercontent.apps.${iosClientId.replace('.apps.googleusercontent.com', '')}`
-  : 'com.googleusercontent.apps.unset';
-
 const config: ExpoConfig = {
   name: 'Taxnest',
   slug: 'freelancetax',
@@ -59,7 +52,6 @@ const config: ExpoConfig = {
     'expo-sharing',
     '@react-native-community/datetimepicker',
     'expo-apple-authentication',
-    ['@react-native-google-signin/google-signin', { iosUrlScheme: googleIosUrlScheme }],
     './plugins/with-modular-headers',
     './plugins/with-precompiled-modules-disabled',
   ],

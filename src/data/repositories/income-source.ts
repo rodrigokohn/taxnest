@@ -1,4 +1,5 @@
 import { getDb } from '@/data/db';
+import { syncDelete, syncUpsert } from '@/data/sync';
 import { type IncomeSource } from '@/domain';
 import { newId } from '@/lib/id';
 
@@ -24,6 +25,7 @@ export const incomeSourceRepo = {
       source.color,
       source.created_at,
     );
+    syncUpsert('income_source', source.id);
     return source;
   },
 
@@ -36,10 +38,12 @@ export const incomeSourceRepo = {
       ...fields.map(([, v]) => v as string),
       id,
     );
+    syncUpsert('income_source', id);
   },
 
   async remove(id: string): Promise<void> {
     await getDb().runAsync('DELETE FROM income_source WHERE id = ?', id);
+    syncDelete('income_source', id);
   },
 
   /** Returns the first source, creating a default one if none exists (Free: single implicit source). */

@@ -1,4 +1,5 @@
 import { getDb } from '@/data/db';
+import { syncDelete, syncUpsert } from '@/data/sync';
 import { type Deduction, type DeductionCategory } from '@/domain';
 import { newId } from '@/lib/id';
 
@@ -31,11 +32,13 @@ export const deductionRepo = {
       deduction.note ?? null,
       deduction.tax_year,
     );
+    syncUpsert('deduction', deduction.id);
     return deduction;
   },
 
   async remove(id: string): Promise<void> {
     await getDb().runAsync('DELETE FROM deduction WHERE id = ?', id);
+    syncDelete('deduction', id);
   },
 
   async sumByYear(taxYear: number): Promise<number> {

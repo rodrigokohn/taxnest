@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useEntitlementStore, useIsPro } from '@/config/gating';
 import { calendarYear } from '@/config/tax-year';
+import { clearLocalUserData, pullAllForUser } from '@/data';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   configurePurchases,
@@ -43,42 +44,61 @@ export default function RootLayout() {
   const entitlementLoaded = useEntitlementStore((s) => s.loaded);
 
   // One-time bootstrap: configure RevenueCat, listen for entitlement changes,
-  // then kick off auth / profile / config loads.
+  // then kick off auth and config loads. Profile + data load is driven by the
+  // signed-in user below (it depends on the account's cloud data).
   useEffect(() => {
     configurePurchases();
     onCustomerInfoUpdate((info) => useEntitlementStore.getState().applyCustomerInfo(info));
     useThemeStore.getState().init();
     initAuth();
-    loadProfile();
     loadConfig(calendarYear());
-  }, [initAuth, loadProfile, loadConfig]);
+  }, [initAuth, loadConfig]);
 
-  // Keep the entitlement tied to the signed-in user.
+  // Resolve the signed-in account's entitlement + financial data. Both follow the
+  // account: RevenueCat via identifyPurchaser, the data via Supabase ↔ local
+  // SQLite. We drop `profile.loaded` to false up front so the gate holds the
+  // splash until the cloud pull finishes — a returning user never flashes the
+  // onboarding quiz before their data arrives. Keyed on the resolved user id, so
+  // a plain token refresh (same id) doesn't trigger a re-pull.
   useEffect(() => {
-    const store = useEntitlementStore.getState();
-    if (!purchasesReady()) {
-      store.markLoaded();
-      return;
-    }
-    if (!userId) {
-      store.reset();
-      store.markLoaded();
-      return;
-    }
+    if (!authReady) return; // wait until we know whether a session exists
     let cancelled = false;
-    identifyPurchaser(userId)
-      .then((info) => {
-        if (cancelled) return;
-        if (info) store.applyCustomerInfo(info);
-        else store.markLoaded();
-      })
-      .catch(() => {
-        if (!cancelled) store.markLoaded();
-      });
+    const entitlement = useEntitlementStore.getState();
+    useProfileStore.setState({ loaded: false });
+
+    async function resolve() {
+      if (!userId) {
+        // Signed out: clear the entitlement and the previous account's local data.
+        if (purchasesReady()) entitlement.reset();
+        entitlement.markLoaded();
+        clearLocalUserData();
+        if (!cancelled) useProfileStore.setState({ profile: null, loaded: true });
+        return;
+      }
+      if (!purchasesReady()) {
+        entitlement.markLoaded();
+      } else {
+        try {
+          const info = await identifyPurchaser(userId);
+          if (info) entitlement.applyCustomerInfo(info);
+          else entitlement.markLoaded();
+        } catch {
+          entitlement.markLoaded();
+        }
+      }
+      if (cancelled) return; // a newer auth change is already resolving
+      try {
+        await pullAllForUser(userId);
+      } catch (e) {
+        console.warn('[sync] pull on login failed', e);
+      }
+      if (!cancelled) await loadProfile();
+    }
+    resolve();
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [authReady, userId, loadProfile]);
 
   useEffect(() => {
     if (!authReady || !profileLoaded) return;

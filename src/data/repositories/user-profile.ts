@@ -1,4 +1,5 @@
 import { getDb } from '@/data/db';
+import { syncDeleteProfile, syncUpsert } from '@/data/sync';
 import { type FilingStatus, type UserProfile } from '@/domain';
 
 type Row = {
@@ -54,6 +55,13 @@ export const userProfileRepo = {
       profile.created_at,
       profile.updated_at,
     );
+    syncUpsert('user_profile', profile.id);
     return profile;
+  },
+
+  /** Wipe the profile locally and in the cloud, sending the user back through onboarding. */
+  async clear(): Promise<void> {
+    await getDb().runAsync('DELETE FROM user_profile');
+    syncDeleteProfile();
   },
 };

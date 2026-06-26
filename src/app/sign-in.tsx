@@ -5,12 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { AnimatedEntrance } from '@/components/animated-entrance';
-import { GoogleSignInButton } from '@/components/google-signin-button';
 import { IconSymbol, type IconSymbolName } from '@/components/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, ScreenPadding, Spacing, useTheme } from '@/design';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { isCancel, signInWithApple, signInWithGoogle } from '@/services/auth';
+import { isCancel, signInWithApple } from '@/services/auth';
 
 const VALUE_PROPS: { icon: IconSymbolName; text: string }[] = [
   { icon: 'chart.bar.fill', text: 'Know what to set aside on every payment' },
@@ -18,13 +17,13 @@ const VALUE_PROPS: { icon: IconSymbolName; text: string }[] = [
   { icon: 'bell.fill', text: 'Quarterly reminders so nothing slips' },
 ];
 
-/** Sign in (Google + Apple). The root gate routes onward once a session exists. */
+/** Sign in (Apple). The root gate routes onward once a session exists. */
 export default function SignInScreen() {
   const theme = useTheme();
   const scheme = useColorScheme();
-  const [busy, setBusy] = useState<'apple' | 'google' | null>(null);
+  const [busy, setBusy] = useState<'apple' | null>(null);
 
-  async function run(provider: 'apple' | 'google', fn: () => Promise<void>) {
+  async function run(provider: 'apple', fn: () => Promise<void>) {
     setBusy(provider);
     try {
       await fn();
@@ -87,11 +86,6 @@ export default function SignInScreen() {
                 onPress={() => run('apple', signInWithApple)}
               />
             )}
-
-            <GoogleSignInButton
-              onPress={() => run('google', signInWithGoogle)}
-              disabled={busy !== null}
-            />
 
             <ThemedText variant="caption" color="textTertiary" style={styles.disclaimer}>
               Estimates for planning purposes only — not tax advice.
